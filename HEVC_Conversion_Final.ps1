@@ -81,12 +81,15 @@ Foreach ( $Video in $Videos ) {
     #Execution And Verification
     Write-Log
     Write-Host "Processing $Vid Please Wait."
+    #Tests if the video file is already HEVC, if its not it will convert it.
     $Vidtest = & $Probe -v error -show_format -show_streams $Video 
     if ($Vidtest -contains "codec_name=H264") {
         If ( $Transcode -eq "Hardware" ) {
-            & $Encoder -hwaccel auto -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output" }
+            & $Encoder -hwaccel auto -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output" 
+        }
         If ( $Transcode -eq "Software" ) {
-            & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output" }
+            & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output" 
+        }
 
         #Video Sizes for Comparison
         $OSize = [math]::Round(( Get-Item $Video | Measure-Object Length -Sum ).Sum / 1MB, 2 )
@@ -96,7 +99,7 @@ Foreach ( $Video in $Videos ) {
             Write-Log
             Write-Host "$Vid Processed Size is $CSize MBs, Let's Find Out Which File To Remove." 
                 
-            #Cleanup    
+            #Size comparison then removes the smaller file.    
             If ( $CSize -lt 10 ) {
                 Remove-item $Output
                 Write-host "Something Went Wrong, Converted File Too Small. Removing The Traitor From Your Computer." -ForegroundColor Red
@@ -136,8 +139,8 @@ Foreach ( $Video in $Videos ) {
             }  
 
             If ( $OSize -eq $CSize ) {
-                Remove-Item $Output
-                Write-Host "Same Size, Removing Converted."
+                Remove-Item $Video
+                Write-Host "Same Size, Removing Original."
                 Add-Content $Xclude "$Video"
                 Continue 
             }
@@ -153,7 +156,9 @@ Foreach ( $Video in $Videos ) {
         Write-Host "$Vid is already converted." -ForegroundColor Cyan
         Add-Content $Xclude "$Video"
     } 
-}      
+} 
+  
+#Renames files that were in use or other issues.   
 $RFileList = Get-Content -Path $Rename
 if (!($null -eq $RFileList)) {      
     $RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList -and $_.extension -in ".mkv" } | ForEach-Object { $_.FullName } | Sort-Object
@@ -169,10 +174,7 @@ if (!($null -eq $RFileList)) {
     }
     Remove-Item $Rename  
 }
-
- 
-
-        
+      
 Write-Log
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
