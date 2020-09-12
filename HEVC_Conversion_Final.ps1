@@ -2,6 +2,7 @@
     This Script uses FFMPEG, If you do not have it then it will download it and put it in the right location
     The defaults For the conversion process are good but if you want better quality lower the number on line# 111 or 114
     If your video card is not capable of decoding HEVC video files will appear in the error log saying "Small Converted Video For" and the video path\name and adds it to the exclusion list to prevent multiple attempts.
+    This will skip any HEVC files and add them to the exclusion list.
     This script will make an Exclusion List, Log File, And an Error Log in a folder name "_Conversion" this helps speed up the processes if you need to stop the script and pick back up where you left off.
     Enjoy. -Dmankl
 #>
