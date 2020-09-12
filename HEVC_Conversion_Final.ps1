@@ -2,7 +2,6 @@
     This Script uses FFMPEG, If you do not have it then it will download it and put it in the right location
     The defaults For the conversion process are good but if you want better quality lower the number on line# 111 or 114
     If your video card is not capable of decoding HEVC video files will appear in the error log saying "Small Converted Video For" and the video path\name and adds it to the exclusion list to prevent multiple attempts.
-    This will skip any HEVC files and add them to the exclusion list.
     This script will make an Exclusion List, Log File, And an Error Log in a folder name "_Conversion" this helps speed up the processes if you need to stop the script and pick back up where you left off.
     Enjoy. -Dmankl
 #>
@@ -21,6 +20,7 @@ If (!( Test-Path -Path $Encoder )) {
     Invoke-WebRequest -Uri $Url -OutFile $Output
     Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
     Copy-Item "C:\Temp\ffmpeg*\*" -Destination "C:\ffmpeg" -Recurse
+    Remove-Item $Output
 }
 $Probe = 'C:\ffmpeg\bin\ffprobe.exe'
 $Resources = "$Directory\_Conversion"
@@ -82,28 +82,6 @@ Foreach ($Video in $Videos) {
         Else { Rename-Item $Output -NewName $Final }
                 
         #Execution And Verification
-        Write-host "Please wait, this may take a while."
-        $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $_ -notin $FileList -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object
-        $Count = $Videos.count
-        Write-Log "---Starting--Conversion--Process---"
-        Write-Host "$Count Videos to be processed."
-        #Video Batch
-        Foreach ( $Video in $Videos ) {
-            $Path = Split-Path $Video
-            $Vid = ( Get-Item "$Video" ).Basename
-            $Output = $Path + "\" + $Vid + '_MERGED' + '.mkv'
-            $Final = $Path + "\" + $Vid + '.mkv'
-            #Check If A Conversion Process Was Interrupted
-            If ( Test-Path $Output ) {
-                If ( Test-Path $Final ) {
-                    Remove-item $Output
-                    Write-Log
-                    Write-host "Previous $Vid Conversion failed, Removing The Traitor From Your Computer." -ForegroundColor Yellow 
-                    Add-Content $ErrorList "Cleaned Up Previous $Vid File." 
-                }
-                Else { Rename-Item $Output -NewName $Final }
-            }  
-            #Execution And Verification
             Write-Log
             Write-Host "Processing $Vid Please Wait."
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
@@ -174,14 +152,13 @@ Foreach ($Video in $Videos) {
                     Add-Content $ErrorList "Conversion Failed For $Video" 
                 }
             }
-            
-            else {
+            if ($Vidtest -contains "codec_name=hevc") {
                 Write-Host "$Vid is already converted." -ForegroundColor Cyan
                 Add-Content $Xclude "$Video"
             } 
         }  
     }
-}   
+  
 #Rename Files 
 $RFileList = Get-Content -Path $Rename
 if (!($null -eq $RFileList)) {      
