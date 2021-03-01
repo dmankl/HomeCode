@@ -6,6 +6,8 @@
     Enjoy. -Dmankl
 #>
 #Set Dependancies and Verify Working Files and Directories are there
+Write-Host "HEVC Conversion by DMANKL"
+Write-Host "Please input the top folder of the videos you will like to convert"
 $Directory = Read-Host -Prompt 'Input Location'
 $Encoder = "C:\ffmpeg\bin\ffmpeg.exe"
 If (!( Test-Path -Path $Encoder )) {
@@ -57,7 +59,7 @@ Function Write-Log($string) {
     $outStr = "" + $dateTimeNow + " " + $string 
     Write-Output $outStr 
 }
-
+Write-Host "Checking for video files, This may take a while."
 #Gets The Videos To Convert
 $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $_ -notin $FileList -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object
 $Count = $Videos.count
@@ -80,7 +82,7 @@ Foreach ($Video in $Videos) {
             Add-Content $ErrorList "Cleaned Up Previous $Vid File." 
         }
         Else { Rename-Item $Output -NewName $Final }
-                
+    }           
         #Execution And Verification
             Write-Log
             Write-Host "Processing $Vid Please Wait."
@@ -157,7 +159,7 @@ Foreach ($Video in $Videos) {
                 Add-Content $Xclude "$Video"
             } 
         }  
-    }
+    
   
 #Rename Files 
 $RFileList = Get-Content -Path $Rename
