@@ -47,7 +47,7 @@ switch ($Result) {
             if (!(Test-Path "C:\ffmpeg")) {
                 New-Item -Path "C:\" -Name "ffmpeg" -ItemType "Directory"
             }
-            $Url = "https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-20200831-4a11a6f-win64-static.zip"
+            $Url = "https://www.videohelp.com/download/ffmpeg-20200831-4a11a6f-win64-static.zip?r=tmLTNJlnW"
             $Output = "C:\Temp\ffmpeg.zip"
             Invoke-WebRequest -Uri $Url -OutFile $Output
             Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
