@@ -147,6 +147,10 @@ switch ($Result) {
                     #Compare and remove smaller file
                     If ( $OSize -gt $CSize ) {
                         Remove-Item $Video
+                        if (Test-Path $Video) {
+                            Start-Sleep -Seconds 15
+                            Remove-Item $Video
+                        }    
                         If (!( Test-Path $Video )) {
                             Write-Host "Original File Removed, Keeping The Converted File." -ForegroundColor Green
                             Rename-Item $Output -NewName $Final
