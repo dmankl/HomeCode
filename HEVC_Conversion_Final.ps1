@@ -111,6 +111,14 @@ switch ($Result) {
             Write-Log
             Write-Host "Processing $Vid Please Wait."
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
+            <#If subtitles are not a supported format Changes Subtitle Variable to improve conversion success.
+            if ($Vidtest -contains "codec_name=ass") {
+                $Sub = Ass
+            }
+            else {
+                $Sub = Copy
+            }
+            #>
             if ($Vidtest -contains "codec_name=H264") {
                 If ( $Transcode -eq "Hardware" ) {
                     try {
@@ -249,13 +257,13 @@ switch ($Result) {
             $CVid = (Get-Item "$CVideo").fullname -Replace '_MERGED', ''
             if (Test-Path $CVideo) {
                 if (Test-Path $CVid) {
-                    Write-Host "Found unconverted Video, Removing Converted video Just in case."
+                    Write-Host "Found unconverted Video, Removing Converted video Just in case." -ForegroundColor Yellow
                     Remove-item $CVideo
                     If (Test-Path $CVideo) {
-                        Write-Host "Could Not Remove $CVideo"
+                        Write-Host "Could Not Remove $CVideo" -ForegroundColor Red
                     }
                     else {
-                        Write-Host "Renamed $CVideo"
+                        Write-Host "Renamed $CVideo" -ForegroundColor Green
                     }
                 }
                 else {
@@ -274,8 +282,6 @@ switch ($Result) {
     }
 }
 
-
-Write-Log
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
