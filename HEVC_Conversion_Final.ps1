@@ -18,16 +18,15 @@ $Log = "$Resources\ConversionLog.txt"
 If (!( Test-Path -Path $Log )) { New-Item -Path $Resources -Name "ConversionLog.txt" -ItemType "File" }
 
 #Transcript And Log Functions
-Function Transcription {
-    $version = $PSVersionTable.PSVersion.toString()
-    If ($version -gt 5.9) { Start-Transcript -Path "$Log" -Append -UseMinimalHeader } 
-    Else { Start-Transcript -Path "$Log" -Append }
-    Function Write-Log($string) {
-        $dateTimeNow = Get-Date -Format "MM.dd.yyyy - HH:mm:ss"
-        $outStr = "" + $dateTimeNow + " " + $string 
-        Write-Output $outStr 
-    }
+$version = $PSVersionTable.PSVersion.toString()
+If ($version -gt 5.9) { Start-Transcript -Path "$Log" -Append -UseMinimalHeader } 
+Else { Start-Transcript -Path "$Log" -Append }
+Function Write-Log($string) {
+    $dateTimeNow = Get-Date -Format "MM.dd.yyyy - HH:mm:ss"
+    $outStr = "" + $dateTimeNow + " " + $string 
+    Write-Output $outStr 
 }
+
 
 $Title = "Transcode/Cleanup"
 $Message = "Would you like to trancode videos or clean up previous transcode jobs"
@@ -79,9 +78,6 @@ switch ($Result) {
             "0"	{ $Transcode = "Hardware" }
             "1"	{ $Transcode = "Software" }
         }
-
-        Transcription
-
 
         #Gets The Videos To Convert
         Write-Host "Looking For Video Files, Please wait as this may take a while depending on the amount of files in the directories."
