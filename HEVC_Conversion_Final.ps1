@@ -156,6 +156,14 @@ switch ($Result) {
                             Remove-Item $Video
                         }    
                         If (!( Test-Path $Video )) {
+                           <#Future Addition
+                            If (Test-Path $Final){
+                                #Check if it is HEVC
+                                #check if it is bigger or smaller than converted, Remove bigger
+                                #If newely converted is removed/bigger skip next stuff
+                                #check if newer version is higher quality
+                            }
+                           #>
                             Write-Host "Original File Removed, Keeping The Converted File." -ForegroundColor Green
                             Rename-Item $Output -NewName $Final
                             If (!( Test-Path $Final )) {
@@ -281,3 +289,20 @@ switch ($Result) {
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
+
+<#
+Look to add to script
+Quality Varitation as a factor of removing one or the other
+If a HEVC is already converted, remove the smaller .. better quality one
+Add a Saving space counter/record
+
+Considerations
+Make a folder and add files into it instead of removing, then add a function to remove unwanted files by questioning
+Add a function to convert to HEVC even if file is bigger than 264 version
+
+Future Additions
+Add GUI
+Add test to see if Hardware/Software is possible
+Add test to see if 264 files are in the exclusion list
+Change to CSV files
+#>
