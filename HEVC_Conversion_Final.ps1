@@ -12,8 +12,9 @@
 Write-Host "HEVC Conversion by DMANKL."
 Write-Host "Please enter the filepath where we will be working today."
 $Directory = Read-Host -Prompt 'Input Location'
-$Resources = "$Directory\_Conversion"
-If (!( Test-Path -Path $Resources )) { New-Item -Path $Directory -Name "_Conversion" -ItemType "Directory" }   
+$FFMPEG = "C:\FFMPEG"
+$Resources = "$FFMPEG\_Conversion"
+If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $Log = "$Resources\ConversionLog.txt"
 If (!( Test-Path -Path $Log )) { New-Item -Path $Resources -Name "ConversionLog.txt" -ItemType "File" }
 
@@ -37,20 +38,20 @@ $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
 switch ($Result) {
     "0"	{
-        $Encoder = "C:\ffmpeg\bin\ffmpeg.exe"
+        $Encoder = "$FFMPEG\bin\ffmpeg.exe"
         Write-Host "Checking For the necessary files"
         If (!( Test-Path -Path $Encoder )) {
             if (!(Test-Path "C:\Temp")) {
                 New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
             }
-            if (!(Test-Path "C:\ffmpeg")) {
-                New-Item -Path "C:\" -Name "ffmpeg" -ItemType "Directory"
+            if (!(Test-Path "$FFMPEG\bin")) {
+                New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
             }
             $Url = "https://www.videohelp.com/download/ffmpeg-20200831-4a11a6f-win64-static.zip?r=tmLTNJlnW"
             $Output = "C:\Temp\ffmpeg.zip"
             Invoke-WebRequest -Uri $Url -OutFile $Output
             Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
-            Copy-Item "C:\Temp\ffmpeg*\*" -Destination "C:\ffmpeg" -Recurse
+            Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
             Remove-Item $Output
         }
         else {
