@@ -154,6 +154,7 @@ switch ($Result) {
                         Remove-Item $Video
                         if (Test-Path $Video) {
                             Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
                             Remove-Item $Video
                         }    
                         If (!( Test-Path $Video )) {
@@ -187,6 +188,11 @@ switch ($Result) {
     
                     If ( $OSize -lt $CSize ) {
                         Remove-Item $Output
+                        if (Test-Path $Output) {
+                            Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
+                            Remove-Item $Output
+                        }    
                         Write-Host "Converted File Removed, Keeping The Original File." -ForegroundColor Yellow
                         Add-Content $Xclude "$Video"
                         Continue 
@@ -194,6 +200,11 @@ switch ($Result) {
     
                     If ( $OSize -eq $CSize ) {
                         Remove-Item $Output
+                        if (Test-Path $Output) {
+                            Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
+                            Remove-Item $Output
+                        }  
                         Write-Host "Same Size, Removing Converted."
                         Add-Content $Xclude "$Video"
                         Continue 
