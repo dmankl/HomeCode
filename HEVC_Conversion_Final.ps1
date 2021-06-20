@@ -17,6 +17,36 @@ $Resources = "$FFMPEG\_Conversion"
 If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $Log = "$Resources\ConversionLog.txt"
 If (!( Test-Path -Path $Log )) { New-Item -Path $Resources -Name "ConversionLog.txt" -ItemType "File" }
+$Encoder = "$FFMPEG\bin\ffmpeg.exe"
+Write-Host "Checking For the necessary files"
+If (!( Test-Path -Path $Encoder )) {
+    if (!(Test-Path "C:\Temp")) {
+        New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
+    }
+    if (!(Test-Path "$FFMPEG\bin")) {
+        New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
+    }
+    $Url = "https://www.videohelp.com/download/ffmpeg-20200831-4a11a6f-win64-static.zip?r=tmLTNJlnW"
+    $Output = "C:\Temp\ffmpeg.zip"
+    Invoke-WebRequest -Uri $Url -OutFile $Output
+    Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
+    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
+    Remove-Item $Output
+}
+else {
+    Write-Host "Found The files, Lets get started."
+}
+$Probe = 'C:\ffmpeg\bin\ffprobe.exe'
+Write-Host "Verifying/Creating Supporting files."
+$Xclude = "$Resources\Exclude.txt"
+If (!( Test-Path -Path $Xclude )) { New-Item -Path $Resources -Name "Exclude.txt" -ItemType "File" }
+$Rename = "$Resources\Rename.txt"
+If (!( Test-Path -Path $Rename )) { New-Item -Path $Resources -Name "Rename.txt" -ItemType "File" }
+$ErrorList = "$Resources\ErrorList.txt"
+If (!(Test-Path -Path $ErrorList)) { New-Item -Path $Resources -Name "ErrorList.txt" -ItemType "File" }
+$FileList = Get-Content -Path "$Xclude"
+
+
 
 #Transcript And Log Functions
 $version = $PSVersionTable.PSVersion.toString()
@@ -29,44 +59,15 @@ Function Write-Log($string) {
 }
 
 
-$Title = "Transcode/Cleanup"
-$Message = "Would you like to trancode videos or clean up previous transcode jobs"
-$Options = "&Transcode", "&Clean Up"
+$Title = "Transcode/Other"
+$Message = "Would you like to trancode videos, clean up previous transcode jobs, or setup exclusion file"
+$Options = "&Transcode", "&Clean Up", "&Setup Exclusion File"
 
 $DefaultChoice = 0
 $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
 switch ($Result) {
     "0"	{
-        $Encoder = "$FFMPEG\bin\ffmpeg.exe"
-        Write-Host "Checking For the necessary files"
-        If (!( Test-Path -Path $Encoder )) {
-            if (!(Test-Path "C:\Temp")) {
-                New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
-            }
-            if (!(Test-Path "$FFMPEG\bin")) {
-                New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
-            }
-            $Url = "https://www.videohelp.com/download/ffmpeg-20200831-4a11a6f-win64-static.zip?r=tmLTNJlnW"
-            $Output = "C:\Temp\ffmpeg.zip"
-            Invoke-WebRequest -Uri $Url -OutFile $Output
-            Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
-            Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
-            Remove-Item $Output
-        }
-        else {
-            Write-Host "Found The files, Lets get started."
-        }
-        $Probe = 'C:\ffmpeg\bin\ffprobe.exe'
-        Write-Host "Verifying/Creating Supporting files."
-        $Xclude = "$Resources\Exclude.txt"
-        If (!( Test-Path -Path $Xclude )) { New-Item -Path $Resources -Name "Exclude.txt" -ItemType "File" }
-        $Rename = "$Resources\Rename.txt"
-        If (!( Test-Path -Path $Rename )) { New-Item -Path $Resources -Name "Rename.txt" -ItemType "File" }
-        $ErrorList = "$Resources\ErrorList.txt"
-        If (!(Test-Path -Path $ErrorList)) { New-Item -Path $Resources -Name "ErrorList.txt" -ItemType "File" }
-        $FileList = Get-Content -Path "$Xclude"
-
         #Type of Transcode
         $Title = "Transcode Type"
         $Message = "Please choose how you want to transcode your videos"
@@ -105,21 +106,26 @@ switch ($Result) {
                 Else { Rename-Item $Output -NewName $Final }
             }           
             #Execution And Verification
-            Write-Log
-            Write-Host "Processing $Vid Please Wait."
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
-            <#If subtitles are not a supported format Changes Subtitle Variable to improve conversion success.
-            if ($Vidtest -contains "codec_name=ass") {
-                $Sub = Ass
+            #If subtitles are not a supported format Changes Subtitle Variable to improve conversion success.
+            if ($Vidtest -contains "codec_name=mov_text") {
+                $Sub = "srt"
             }
             else {
-                $Sub = Copy
+                $Sub = "Copy"
             }
-            #>
-            if ($Vidtest -contains "codec_name=H264") {
+            
+            if ($Vidtest -contains "codec_name=hevc") {
+                Write-Host "$Vid is already converted." -ForegroundColor Cyan
+                Add-Content $Xclude "$Video"
+            } 
+            else {            
+                Write-Log
+                Write-Host "Processing $Vid Please Wait."
+    
                 If ( $Transcode -eq "Hardware" ) {
                     try {
-                        & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output" 
+                        & $Encoder -hwaccel cuda -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s $Sub "$Output" 
                     }
                     catch {
                         Write-Host "Could Not Convert $Video, Check error log for more information." -ForegroundColor RED
@@ -127,7 +133,7 @@ switch ($Result) {
                 }
                 If ( $Transcode -eq "Software" ) {
                     try {
-                        & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output" 
+                        & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s $Sub "$Output" 
                     }
                     catch {
                         Write-Host "Could Not Convert $Video, Check error log for more information." -ForegroundColor RED
@@ -158,7 +164,7 @@ switch ($Result) {
                             Remove-Item $Video
                         }    
                         If (!( Test-Path $Video )) {
-                           <#Future Addition
+                            <#Future Addition
                             If (Test-Path $Final){
                                 #Check if it is HEVC
                                 #check if it is bigger or smaller than converted, Remove bigger
@@ -216,10 +222,7 @@ switch ($Result) {
                     Add-Content $ErrorList "Conversion Failed For $Video" 
                 }
             }
-            if ($Vidtest -contains "codec_name=hevc") {
-                Write-Host "$Vid is already converted." -ForegroundColor Cyan
-                Add-Content $Xclude "$Video"
-            } 
+             
         }  
   
         #Rename Files 
@@ -248,7 +251,7 @@ switch ($Result) {
                             Write-Host "Processing $RVid"                
                             Get-Item $RVideo | Rename-Item -NewName { $_.Name -Replace '_MERGED', '' } 
                             if (Test-Path $RVid) {
-                                (Get-Content $Rename -Replace "$RVideo")
+                                (Get-Content $Rename) -Replace "$RVideo" , "" | out-file $Rename
                                 Write-host "Renamed $RVid"
                             }
                         }
@@ -294,6 +297,17 @@ switch ($Result) {
                 }
     
             }    
+        }
+    }
+    "2" {
+        Write-Host "Looking For Video Files, Please wait as this may take a while depending on the amount of files in the directories."
+        $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $_ -notin $FileList -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object
+        Foreach ($Video in $Videos) {
+            $Vidtest = & $Probe -v error -show_format -show_streams $Video
+            if ($Vidtest -contains "codec_name=hevc") {
+                Write-Host "$Video is already converted." -ForegroundColor Cyan
+                Add-Content $Xclude "$Video"
+            }
         }
     }
 }
