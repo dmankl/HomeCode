@@ -45,6 +45,7 @@ If (!( Test-Path -Path $Rename )) { New-Item -Path $Resources -Name "Rename.txt"
 $ErrorList = "$Resources\ErrorList.txt"
 If (!(Test-Path -Path $ErrorList)) { New-Item -Path $Resources -Name "ErrorList.txt" -ItemType "File" }
 $FileList = Get-Content -Path "$Xclude"
+[System.Collections.ArrayList]$PossDuplicates = $null
 
 
 
@@ -87,7 +88,14 @@ switch ($Result) {
         $Count = $Videos.count
         Write-Log "---Starting--Conversion--Process---"
         Write-Host "$Count Videos to be processed."
-            
+        For ($i = 0; $i -le ($Videos.count - 1); $i++) {
+
+            Write-Progress -Activity 'Compare status' -percentComplete ($i / $Videos.count * 100)
+
+        }
+
+    
+
         #Video Batch
         Foreach ($Video in $Videos) {
             $Path = Split-Path $Video
@@ -109,10 +117,10 @@ switch ($Result) {
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
             #If subtitles are not a supported format Changes Subtitle Variable to improve conversion success.
             if ($Vidtest -contains "codec_name=mov_text") {
-                $Sub = "srt"
+                $Sub = 'srt'
             }
             else {
-                $Sub = "Copy"
+                $Sub = 'Copy'
             }
             
             if ($Vidtest -contains "codec_name=hevc") {
@@ -143,7 +151,12 @@ switch ($Result) {
                 $OSize = [math]::Round(( Get-Item $Video | Measure-Object Length -Sum ).Sum / 1MB, 2 )
                 $CSize = [math]::Round(( Get-Item $Output | Measure-Object Length -Sum ).Sum / 1MB, 2 )
                 #Verify conversion         
-                If ( Test-Path $Output ) {        
+                If ( Test-Path $Output ) { 
+                    If ( Test-Path $Final ) { 
+                        Rename-item $Final -NewName { $_.FullName -Replace ".mkv", ".old" } 
+                        Add-Content $ErrorList "Renamed possible redundant video, Please Verify $Video"
+                        $PossDuplicates.Add("$Final")
+                    }
                     Write-Log
                     Write-Host "$Vid Processed Size is $CSize MBs, Let's Find Out Which File To Remove." 
                         
@@ -218,8 +231,10 @@ switch ($Result) {
                 }
                 Else {
                     Write-Log
-                    Write-Host "Conversion Failed, Adding $Vid To The Error List." -ForegroundColor Red 
+                    Write-Host "Conversion Failed, Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
                     Add-Content $ErrorList "Conversion Failed For $Video" 
+                    Add-Content $Xclude "$Video"
+
                 }
             }
              
@@ -311,7 +326,11 @@ switch ($Result) {
         }
     }
 }
-
+If ($null -ne $PossDuplicates){
+    $csvout = "$Directory\" + "PossDuplicates" + [DateTime]::Now.ToString("yyyyMMdd-HHmmss") + ".csv"
+    Write-host "Possible duplicate files found please look in $csvout, Files have not been removed" -ForegroundColor Red
+    $PossDuplicates | out-file "$csvout"
+}
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
