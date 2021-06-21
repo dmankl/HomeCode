@@ -327,7 +327,7 @@ switch ($Result) {
     }
 }
 If ($null -ne $PossDuplicates){
-    $csvout = "$Directory\" + "PossDuplicates" + [DateTime]::Now.ToString("yyyyMMdd-HHmmss") + ".csv"
+    $csvout = "$Resources\" + "PossDuplicates" + [DateTime]::Now.ToString("yyyyMMdd-HHmmss") + ".csv"
     Write-host "Possible duplicate files found please look in $csvout, Files have not been removed" -ForegroundColor Red
     $PossDuplicates | out-file "$csvout"
 }
