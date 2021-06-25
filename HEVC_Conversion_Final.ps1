@@ -91,7 +91,7 @@ switch ($Result) {
 
         #Gets The Videos To Convert
         Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
-        $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
+        $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $_ -notin $FileList -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
         $Count = $Videos.count
         Write-Log "---Starting--Conversion--Process---"
         Write-Host "$Count Videos to be processed."
@@ -280,7 +280,7 @@ switch ($Result) {
     "1" {
         #Cleans Up Conversion Files
         Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
-        $CVideos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
+        $CVideos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $_ -notin $FileList -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
         $Count = $Videos.count
         Start-Transcript
         foreach ($CVideo in $CVideos) {
