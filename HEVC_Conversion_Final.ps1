@@ -122,6 +122,21 @@ switch ($Result) {
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
 
             #If subtitles are not a supported format Changes Subtitle Variable to improve conversion success.
+
+            If ( $Transcode -eq "Hardware" ) {
+                $Decode = "-hwaccel cuda"
+                $VidArg = "hevc_nvenc -rc constqp -qp 27"
+            }elseif ($Transcode -eq "Software") {
+                $VidArg = "libx265 -rc constqp -crf 27"
+            } 
+            <#
+            if (condition) {
+                $AudArg = "aac"
+            }
+            else {
+                $AudArg = "copy"
+            }
+            #>
             if ($Vidtest -contains "codec_name=mov_text") {
                 $Sub = 'srt'
             }
@@ -139,12 +154,7 @@ switch ($Result) {
                 Write-Host "Processing $Vid Please Wait."
                 
                 #Conversion
-                If ( $Transcode -eq "Hardware" ) {
-                    & $Encoder -hwaccel cuda -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s $Sub "$Output" 
-                }
-                If ( $Transcode -eq "Software" ) {
-                    & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s $Sub "$Output" 
-                }
+                    & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? $VidArg -b:v 0k -c:a copy -c:s $Sub "$Output" 
 
                 #Verify conversion         
                 If ( Test-Path $Output ) {
