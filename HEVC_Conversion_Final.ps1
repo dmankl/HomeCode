@@ -293,9 +293,6 @@ switch ($Result) {
                     If (Test-Path $CVideo) {
                         Write-Host "Could Not Remove $CVideo" -ForegroundColor Red
                     }
-                    else {
-                        Write-Host "Renamed $CVideo" -ForegroundColor Green
-                    }
                 }
                 else {
                     Write-Host "Renaming $CVideo"
@@ -304,7 +301,7 @@ switch ($Result) {
                         Write-Host "Could Not Rename $CVideo"
                     }
                     else {
-                        Write-Host "Renamed $CVideo Successfully."
+                        Write-Host "Renamed $CVideo Successfully." -ForegroundColor Green
                     }
                 }
     
