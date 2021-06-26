@@ -118,33 +118,11 @@ switch ($Result) {
                 }
                 Else { Rename-Item $Output -NewName $Final }
             }           
+            
             #Execution And Verification
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
-
-            #If subtitles are not a supported format Changes Subtitle Variable to improve conversion success.
-
-            If ( $Transcode -eq "Hardware" ) {
-                $Decode = "-hwaccel cuda"
-                $VidArg = "hevc_nvenc -rc constqp -qp 27"
-            }elseif ($Transcode -eq "Software") {
-                $VidArg = "libx265 -rc constqp -crf 27"
-            } 
-            <#
-            if (condition) {
-                $AudArg = "aac"
-            }
-            else {
-                $AudArg = "copy"
-            }
-            #>
-            if ($Vidtest -contains "codec_name=mov_text") {
-                $Sub = 'srt'
-            }
-            else {
-                $Sub = 'Copy'
-            }
-            
-            #Checks if video is already HEV
+           
+            #Checks if video is already HEVC
             if ($Vidtest -contains "codec_name=hevc") {
                 Write-Host "$Vid is already converted." -ForegroundColor Cyan
                 Add-Content $Xclude "$Video" 
@@ -154,7 +132,22 @@ switch ($Result) {
                 Write-Host "Processing $Vid Please Wait."
                 
                 #Conversion
-                    & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? $VidArg -b:v 0k -c:a copy -c:s $Sub "$Output" 
+                If ( $Transcode -eq "Hardware" ) {
+                    if ($Vidtest -contains "codec_name=mov_text") {
+                        & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                    }
+                    else {
+                        & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                    } 
+                }
+                If ( $Transcode -eq "Software" ) {
+                    if ($Vidtest -contains "codec_name=mov_text") {
+                        & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s srt "$Output" 
+                    }
+                    else {
+                        & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output" 
+                    }
+                }
 
                 #Verify conversion         
                 If ( Test-Path $Output ) {
