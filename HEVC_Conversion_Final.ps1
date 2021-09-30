@@ -44,7 +44,7 @@ If (!( Test-Path -Path $Encoder )) {
     if (!(Test-Path "$FFMPEG\bin")) {
         New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
     }
-    $Url = "https://www.videohelp.com/download/ffmpeg-20200831-4a11a6f-win64-static.zip?r=tmLTNJlnW"
+    $Url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z"
     $Output = "C:\Temp\ffmpeg.zip"
     Invoke-WebRequest -Uri $Url -OutFile $Output
     Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
@@ -143,7 +143,7 @@ switch ($Result) {
                 If ( $Transcode -eq "Software" ) {
                     if ($Vidtest -contains "codec_name=mov_text") {
                         & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s srt "$Output" 
-                    }
+                    } 
                     else {
                         & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output" 
                     }
@@ -151,18 +151,20 @@ switch ($Result) {
 
                 #Verify conversion         
                 If ( Test-Path $Output ) {
-                    Write-Log
-                    Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove." 
 
                     #Gets Video Sizes for Comparison
-                    $OSize = [math]::Round(( Get-Item $Video | Measure-Object Length -Sum ).Sum / 1MB, 2 )
-                    $CSize = [math]::Round(( Get-Item $Output | Measure-Object Length -Sum ).Sum / 1MB, 2 )
-                        
+                    $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )
+                    $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
+
+                    Write-Log
+                    Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
+                    
                     #Removes small files    
                     If ( $CSize -lt 10 ) {
                         Remove-item $Output
                         Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
                         Write-output "Small Video Output, $Video" | Out-File -FilePath $ErrorList -Append
+                        Add-Content $Xclude "$Video"
                         Continue 
                     }
                     
