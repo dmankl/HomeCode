@@ -9,24 +9,6 @@
     Enjoy. -Dmankl
 #>
 
-Function Get-Folder($initialDirectory) {
-    [void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
-    $FolderBrowserDialog = New-Object System.Windows.Forms.FolderBrowserDialog
-    $FolderBrowserDialog.RootFolder = 'MyComputer'
-    $FolderBrowserDialog.ShowNewFolderButton = $false
-
-    if ($initialDirectory) { 
-        $FolderBrowserDialog.SelectedPath = $initialDirectory 
-    }
-    [void] $FolderBrowserDialog.ShowDialog()
-    return $FolderBrowserDialog.SelectedPath
-}
-#Set Dependancies and Verify Working Files and Directories are there
-Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
-Write-Host "Please enter the filepath where we will be working today." -ForegroundColor Black -BackgroundColor White
-$Directory = Get-Folder
-Write-Host "Verifying/Creating Supporting files."
-
 #Resource Files
 $FFMPEG = "C:\FFMPEG"
 $Resources = "$FFMPEG\_Conversion"
@@ -48,7 +30,7 @@ If (!( Test-Path -Path $Xclude )) {
 $Rename = "$Resources\Rename.csv"
 If (!( Test-Path -Path $Rename )) {     
     $Renames = [pscustomobject]@{
-        'Path' = ''
+        'Path' = 'Null'
     }
     Export-Csv -InputObject $Renames -Path $Rename -Delimiter "|" -NoTypeInformation 
 }
@@ -61,15 +43,45 @@ if (!(Test-Path $ErrorList)) {
     Export-Csv -InputObject $Errors -Path $ErrorList -Delimiter "|" -NoTypeInformation
 }
 $Default = "$Resources\Defaults.csv"
-If (!( Test-Path -Path $Log )) { 
+If (!( Test-Path -Path $Default )) { 
     $Defaults = [pscustomobject]@{
-        'Path' = ''
-        'Function' = ''
+        'Path'      = ''
+        'Function'  = ''
         'Transcode' = ''
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation
+}else {
+    Write-Host "Using Defaults set in $Default, if you want to reset run this script again with switch"
 }
-$FileList = Import-Csv -Path "$Xclude" -Delimiter "|"
+$LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
+$FileList = Import-Csv -Path $Xclude -Delimiter "|"
+$Coding = 'Hardware', 'Software'
+$Functions = '0', '1', '2'
+
+Function Get-Folder{
+     Add-Type -AssemblyName System.Windows.Forms
+    $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
+        SelectedPath = $LoadedDefaults.Path
+        ShowNewFolderButton = $false
+    }
+    [void]$FolderBrowser.ShowDialog()
+    $FolderBrowser.SelectedPath 
+    $Res = $FolderBrowser.ShowDialog()
+    if ($Res-ne "OK") {
+        Break
+    }
+}
+
+#Set Dependancies and Verify Working Files and Directories are there
+Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
+Write-Host "Please enter the filepath where we will be working today." -ForegroundColor Black -BackgroundColor White
+
+#Gets Directory then stores that in Defaults CSV
+$Directory = Get-Folder
+$LoadedDefaults | ForEach-Object {$LoadedDefaults.Path = "$Directory"} 
+$LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+
+Write-Host "Verifying/Creating Supporting files."
 
 #FFMPEG Files
 Write-Host "Checking For the necessary files"
@@ -104,6 +116,7 @@ Function Write-Log($string) {
 }
 
 #Real start of the script
+if ($Functions -notcontains $LoadedDefaults.Function) {
 $Title = "Transcode/Other"
 $Message = "Would you like to trancode videos, clean up previous transcode jobs, or setup exclusion file"
 $Options = "&Transcode", "&Clean Up", "&Setup Exclusion File"
@@ -111,21 +124,33 @@ $Options = "&Transcode", "&Clean Up", "&Setup Exclusion File"
 $DefaultChoice = 0
 $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
+$LoadedDefaults | ForEach-Object {$LoadedDefaults.Function = "$Result"} 
+$LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+}else {
+    $Result = $LoadedDefaults.Function
+}
 switch ($Result) {
     "0"	{
-        #Type of Transcode
-        $Title = "Transcode Type"
-        $Message = "Please choose how you want to transcode your videos"
-        $Options = "&Hardware Transcode", "&Software Transcode"
+        if ($Coding -notcontains $LoadedDefaults.Transcode) {
+            #Type of Transcode
+            $Title = "Transcode Type"
+            $Message = "Please choose how you want to transcode your videos"
+            $Options = "&Hardware Transcode", "&Software Transcode"
 
-        $DefaultChoice = 0
-        $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
+            $DefaultChoice = 0
+            $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
-        switch ($Result) {
-            "0"	{ $Transcode = "Hardware" }
-            "1"	{ $Transcode = "Software" }
+            switch ($Result) {
+                "0"	{ $Transcode = "Hardware" }
+                "1"	{ $Transcode = "Software" }
+                
+            }
+            $LoadedDefaults | ForEach-Object {$LoadedDefaults.Transcode = "$Transcode"} 
+            $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+        }else {
+            $Transcode = $LoadedDefaults.Transcode
         }
-
+        
         #Gets The Videos To Convert
         Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
         $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
@@ -138,6 +163,8 @@ switch ($Result) {
 
         #Video Batch
         Foreach ($Video in $Videos) {
+            #Video Scanner
+            $Vidtest = & $Probe -v error -show_format -show_streams $Video 
 
             #Filename Stuff
             $Path = Split-Path $Video
@@ -156,8 +183,22 @@ switch ($Result) {
                 Else { Rename-Item $Output -NewName $Final }
             }           
             
+            If ( Test-Path $Final ) {
+                $FVidtest = & $Probe -v error -show_format -show_streams $Video 
+                if ($FVidtest -contains "codec_name=hevc") {
+                    Remove-Item $Video
+                    Write-Host "Found Already Converted file, Removing Non Converted File"
+                    Write-output "Converted file found. | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
+                }
+                else {
+                    Remove-Item $Final
+                    Write-Host "Found Duplicate Non-Converted file, Removing Non Converted File"
+                    Write-output "Non -Converted file found. | $Final" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
+                }
+            }
+
             #Execution And Verification
-            $Vidtest = & $Probe -v error -show_format -show_streams $Video 
+
            
             #Checks if video is already HEVC
             if ($Vidtest -contains "codec_name=hevc") {
@@ -216,7 +257,6 @@ switch ($Result) {
                             Remove-Item $Video
                         }    
                         If (!( Test-Path $Video )) {
-
                             Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
                             If ( Test-Path $Final ) { 
                                 Rename-item $Final -NewName { $Final.FullName -Replace ".mkv", ".old" } 
@@ -279,7 +319,7 @@ switch ($Result) {
   
         #Rename Files 
         $RFileList = Get-Content -Path $Rename
-        if (!($null -eq $RFileList)) { 
+        if ($RFileList.Length -gt 2) { 
             $Title = "Rename"
             $Message = "Would you like to rename the files that were unable to be renamed?"
             $Options = "&Yes", "&No"
