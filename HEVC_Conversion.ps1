@@ -9,9 +9,31 @@
     Enjoy. -Dmankl
 #>
 
-#Resource Files
+#FFMPEG Files
 $FFMPEG = "C:\FFMPEG"
 $Resources = "$FFMPEG\_Conversion"
+Write-Host "Checking For the necessary files"
+$Encoder = "$FFMPEG\bin\ffmpeg.exe"
+If (!( Test-Path -Path $Encoder )) {
+    if (!(Test-Path "C:\Temp")) {
+        New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
+    }
+    if (!(Test-Path "$FFMPEG\bin")) {
+        New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
+    }
+    $Url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+    $Output = "C:\Temp\ffmpeg.zip"
+    Invoke-WebRequest -Uri $Url -OutFile $Output
+    Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
+    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
+    Remove-Item $Output
+}
+else {
+    Write-Host "Found The files, Lets get started."
+}
+
+#Resource Files
+$Probe = 'C:\ffmpeg\bin\ffprobe.exe'
 If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $Log = "$Resources\ConversionLog.csv"
 If (!( Test-Path -Path $Log )) { 
@@ -50,7 +72,8 @@ If (!( Test-Path -Path $Default )) {
         'Transcode' = ''
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation
-}else {
+}
+else {
     Write-Host "Using Defaults set in $Default, if you want to reset run this script again with switch"
 }
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
@@ -58,16 +81,16 @@ $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Coding = 'Hardware', 'Software'
 $Functions = '0', '1', '2'
 
-Function Get-Folder{
-     Add-Type -AssemblyName System.Windows.Forms
+Function Get-Folder {
+    Add-Type -AssemblyName System.Windows.Forms
     $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
-        SelectedPath = $LoadedDefaults.Path
+        SelectedPath        = $LoadedDefaults.Path
         ShowNewFolderButton = $false
     }
-    [void]$FolderBrowser.ShowDialog()
+    #[void]$FolderBrowser.ShowDialog()
     $FolderBrowser.SelectedPath 
     $Res = $FolderBrowser.ShowDialog()
-    if ($Res-ne "OK") {
+    if ($Res -ne "OK") {
         Break
     }
 }
@@ -78,32 +101,10 @@ Write-Host "Please enter the filepath where we will be working today." -Foregrou
 
 #Gets Directory then stores that in Defaults CSV
 $Directory = Get-Folder
-$LoadedDefaults | ForEach-Object {$LoadedDefaults.Path = "$Directory"} 
+$LoadedDefaults | ForEach-Object { $LoadedDefaults.Path = "$Directory" } 
 $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
 
 Write-Host "Verifying/Creating Supporting files."
-
-#FFMPEG Files
-Write-Host "Checking For the necessary files"
-$Encoder = "$FFMPEG\bin\ffmpeg.exe"
-If (!( Test-Path -Path $Encoder )) {
-    if (!(Test-Path "C:\Temp")) {
-        New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
-    }
-    if (!(Test-Path "$FFMPEG\bin")) {
-        New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
-    }
-    $Url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z"
-    $Output = "C:\Temp\ffmpeg.zip"
-    Invoke-WebRequest -Uri $Url -OutFile $Output
-    Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
-    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
-    Remove-Item $Output
-}
-else {
-    Write-Host "Found The files, Lets get started."
-}
-$Probe = 'C:\ffmpeg\bin\ffprobe.exe'
 
 #Transcript And Log Functions
 $version = $PSVersionTable.PSVersion.toString()
@@ -117,16 +118,17 @@ Function Write-Log($string) {
 
 #Real start of the script
 if ($Functions -notcontains $LoadedDefaults.Function) {
-$Title = "Transcode/Other"
-$Message = "Would you like to trancode videos, clean up previous transcode jobs, or setup exclusion file"
-$Options = "&Transcode", "&Clean Up", "&Setup Exclusion File"
+    $Title = "Transcode/Other"
+    $Message = "Would you like to trancode videos, clean up previous transcode jobs, or setup exclusion file"
+    $Options = "&Transcode", "&Clean Up", "&Setup Exclusion File"
 
-$DefaultChoice = 0
-$Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
+    $DefaultChoice = 0
+    $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
-$LoadedDefaults | ForEach-Object {$LoadedDefaults.Function = "$Result"} 
-$LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
-}else {
+    $LoadedDefaults | ForEach-Object { $LoadedDefaults.Function = "$Result" } 
+    $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+}
+else {
     $Result = $LoadedDefaults.Function
 }
 switch ($Result) {
@@ -145,9 +147,10 @@ switch ($Result) {
                 "1"	{ $Transcode = "Software" }
                 
             }
-            $LoadedDefaults | ForEach-Object {$LoadedDefaults.Transcode = "$Transcode"} 
+            $LoadedDefaults | ForEach-Object { $LoadedDefaults.Transcode = "$Transcode" } 
             $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
-        }else {
+        }
+        else {
             $Transcode = $LoadedDefaults.Transcode
         }
         
