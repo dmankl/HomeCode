@@ -8,8 +8,9 @@
     this helps speed up the processes if you need to stop the script and pick back up where you left off.
     Enjoy. -Dmankl
 #>
+Write-Host "Verifying/Creating Supporting files."
 
-#FFMPEG Files
+#Region FFMPEG Files
 $FFMPEG = "C:\FFMPEG"
 $Resources = "$FFMPEG\_Conversion"
 Write-Host "Checking For the necessary files"
@@ -31,8 +32,9 @@ If (!( Test-Path -Path $Encoder )) {
 else {
     Write-Host "Found The files, Lets get started."
 }
+#EndRegion
 
-#Resource Files
+#Region Resource Files
 $Probe = 'C:\ffmpeg\bin\ffprobe.exe'
 If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $Log = "$Resources\ConversionLog.csv"
@@ -74,13 +76,15 @@ If (!( Test-Path -Path $Default )) {
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation
 }
 else {
-    Write-Host "Using Defaults set in $Default, if you want to reset run this script again with switch"
+    #Insert Instructions to reset defaults
 }
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Coding = 'Hardware', 'Software'
 $Functions = '0', '1', '2'
+#Endregion
 
+#Function to display Folder selector and exit script if cancelled
 Function Get-Folder {
     Add-Type -AssemblyName System.Windows.Forms
     $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
@@ -95,21 +99,23 @@ Function Get-Folder {
     }
 }
 
-#Set Dependancies and Verify Working Files and Directories are there
+#INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
-Write-Host "Please enter the filepath where we will be working today." -ForegroundColor Black -BackgroundColor White
+Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
 
-#Gets Directory then stores that in Defaults CSV
+#Gets Directory 
 $Directory = Get-Folder
+
+#Stores Directory into default CSV
 $LoadedDefaults | ForEach-Object { $LoadedDefaults.Path = "$Directory" } 
 $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
-
-Write-Host "Verifying/Creating Supporting files."
 
 #Transcript And Log Functions
 $version = $PSVersionTable.PSVersion.toString()
 If ($version -gt 5.9) { Start-Transcript -Path "$Log" -Append -UseMinimalHeader } 
 Else { Start-Transcript -Path "$Log" -Append }
+
+#Function to write into Logs
 Function Write-Log($string) {
     $dateTimeNow = Get-Date -Format "MM.dd.yyyy - HH:mm:ss"
     $outStr = "" + $dateTimeNow + " " + $string 
@@ -147,14 +153,17 @@ switch ($Result) {
                 "1"	{ $Transcode = "Software" }
                 
             }
+
+            #Sets the default for function into the defaults CSV
             $LoadedDefaults | ForEach-Object { $LoadedDefaults.Transcode = "$Transcode" } 
             $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
         }
         else {
+            #Loads from Default CSV
             $Transcode = $LoadedDefaults.Transcode
         }
         
-        #Gets The Videos To Convert
+        #Gets The Videos To Convert, displays the amount of videos, progressbar 
         Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
         $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
         $Count = $Videos.count
@@ -169,13 +178,14 @@ switch ($Result) {
             #Video Scanner
             $Vidtest = & $Probe -v error -show_format -show_streams $Video 
 
-            #Filename Stuff
+            #Filename information 
             $Path = Split-Path $Video
             $Vid = (Get-Item "$Video").Basename
             $Output = $Path + "\" + $Vid + '_MERGED' + '.mkv'
             $Final = $Path + "\" + $Vid + '.mkv'
 
-            #Check If A Conversion Was Interrupted
+            #Check If A Conversion Was Interrupted, Removes temp file if it was interrupted
+            #If it was just not renamed it will rename it
             If ( Test-Path $Output ) {
                 If ( Test-Path $Final ) {
                     Remove-item $Output
@@ -186,36 +196,42 @@ switch ($Result) {
                 Else { Rename-Item $Output -NewName $Final }
             }           
             
-            If ( Test-Path $Final ) {
-                $FVidtest = & $Probe -v error -show_format -show_streams $Video 
-                if ($FVidtest -contains "codec_name=hevc") {
-                    Remove-Item $Video
-                    Write-Host "Found Already Converted file, Removing Non Converted File"
-                    Write-output "Converted file found. | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
-                }
-                else {
-                    Remove-Item $Final
-                    Write-Host "Found Duplicate Non-Converted file, Removing Non Converted File"
-                    Write-output "Non -Converted file found. | $Final" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
+            #Possible Duplicate check, Verifies there is another file, Checks if there was a converted file
+            #If converted file is already HEVC removes about to be converted file, otherwise removes possible duplicate
+            if ($Video -ne $Final) {            
+                If ( Test-Path $Final ) {
+                    $FVidtest = & $Probe -v error -show_format -show_streams $Video 
+                    if ($FVidtest -contains "codec_name=hevc") {
+                        Remove-Item $Video
+                        Write-Host "Found Already Converted file, Removing Non Converted File"
+                        Write-output "Converted file found. | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
+                        Continue
+                    }
+                    else {
+                        Remove-Item $Final
+                        Write-Host "Found Duplicate Non-Converted file, Removing Non Converted File"
+                        Write-output "Non -Converted file found. | $Final" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
+                    }
                 }
             }
 
-            #Execution And Verification
 
            
-            #Checks if video is already HEVC
+            #Checks if video is already HEVC, if it is then it will be added to exclusion list then move to the next video
             if ($Vidtest -contains "codec_name=hevc") {
                 Write-Host "$Vid is already converted." -ForegroundColor Cyan
                 Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $Xclude -Append
 
             } 
-            else {    
-                #Current File Size
+            else {   
+                #Converts video If it is not already HEVC
+                
+                #Gets Current File Size
                 $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
                 Write-Log
                 Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
-                #Conversion
+                #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = SOftware
                 If ( $Transcode -eq "Hardware" ) {
                     if ($Vidtest -contains "codec_name=mov_text") {
                         & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
@@ -233,16 +249,16 @@ switch ($Result) {
                     }
                 }
 
-                #Verify conversion         
+                #Verifies a file was created -if it isnt then something went wrong with the conversion
                 If ( Test-Path $Output ) {
 
-                    #Gets Video Sizes for Comparison
+                    #Gets converted Video Sizes for Comparison
                     $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
 
                     Write-Log
                     Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
                     
-                    #Removes small files    
+                    #Removes output video file if it was converted incorrectly, adds to the exclusion list   
                     If ( $CSize -lt 10 ) {
                         Remove-item $Output
                         Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
@@ -251,27 +267,20 @@ switch ($Result) {
                         Continue 
                     }
                     
-                    #Compare and remove smaller file
+                    #Region PostConversion Checks
+                    #Removes Original file if it is bigger than the converted file
                     If ( $OSize -gt $CSize ) {
                         Remove-Item $Video
+                        #Checks that the Original file was deleted, if not it tried to remove again
                         if (Test-Path $Video) {
                             Start-Sleep -Seconds 15
                             Write-host "Waiting 15 Seconds."
                             Remove-Item $Video
-                        }    
+                        }   
+                        #If the Original File was removed , it renames the temp file
                         If (!( Test-Path $Video )) {
                             Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
-                            If ( Test-Path $Final ) { 
-                                Rename-item $Final -NewName { $Final.FullName -Replace ".mkv", ".old" } 
-                                Write-output "Possible Redundant Video | $Final" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $ErrorList -Append
-                                $PossDuplicates.Add("$Final")
-                            }
                             Rename-Item $Output -NewName $Final
-                            <#Possibly Redundant
-                            If ( Test-Path $Output ) {
-                                Add-Content $ErrorList "Couldnt Rename Converted $Vid. It can be renamed at the end of the script."
-                                Add-Content $Rename "$Output"
-                            } #>
                             Write-Output "$Final" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $Xclude -Append
                             Continue 
                         }
@@ -283,6 +292,7 @@ switch ($Result) {
                         Continue 
                     }
     
+                    #Removes Converted File if it is bigger than the original file
                     If ( $OSize -lt $CSize ) {
                         Remove-Item $Output
                         if (Test-Path $Output) {
@@ -296,6 +306,7 @@ switch ($Result) {
                         Continue 
                     }  
     
+                    #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
                     If ( $OSize -eq $CSize ) {
                         Remove-Item $Video
                         if (Test-Path $Video) {
@@ -309,7 +320,7 @@ switch ($Result) {
                         Continue 
                     }
                 }
-                #If Conversion failed
+                #If a video file was not produced it will be added to exclusion list
                 Else {
                     Write-Log
                     Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
@@ -317,10 +328,12 @@ switch ($Result) {
                     Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -FilePath $Xclude -Append
 
                 }
+                #Endregion PostConversion Checks
             }
         }  
   
-        #Rename Files 
+        #Region RenameFile
+        #Renames Files that were not able to be renamed 
         $RFileList = Get-Content -Path $Rename
         if ($RFileList.Length -gt 2) { 
             $Title = "Rename"
@@ -332,11 +345,13 @@ switch ($Result) {
 
             switch ($Result) {
                 "0"	{
+                    #Gets files from the $Rename file and tries to rename them while removing themm from the CSV
                     $RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList -and $_.extension -in ".mkv" } | ForEach-Object { $_.FullName } | Sort-Object
                     $Count = $RVideos.count
                     Write-Log "---Starting--Renaming--Process---"
                     Write-Host "$Count Videos to be processed."
 
+                    #Renaming Processing
                     Foreach ($RVideo in $RVideos) {
                         $RVid = (Get-Item "$RVideo").fullname -Replace '_MERGED', ''
                         If ( Test-Path $RVideo ) {
@@ -355,6 +370,7 @@ switch ($Result) {
                             Write-Host "Could Not Find $RVideo"
                         }
                     }
+        #endregion RenameFile
                 }
                 "1"	{ Continue }
             }
@@ -425,5 +441,4 @@ Future Additions
 Add GUI
 Add test to see if Hardware/Software is possible
 Add test to see if 264 files are in the exclusion list
-Change to CSV files
 #>
