@@ -8,26 +8,12 @@
     this helps speed up the processes if you need to stop the script and pick back up where you left off.
     Enjoy. -Dmankl
 #>
-$FFMPEG = "C:\FFMPEG"
-$Resources = "$FFMPEG\_Conversion"
-Write-Host "Checking For the necessary files"
+
 Write-Host "Verifying/Creating Supporting files."
-<#Future addition- check if your CPU/GPU Is capable of transcoding.
-$GPU = "$Resources\GPU.csv"
-If (!( Test-Path -Path $GPU )) { 
-    $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
-    $Output = "$GPU"
-    Invoke-WebRequest -Uri $Url -OutFile $Output
-}
-$GPUs = Import-Csv -Path $GPU 
-$graphics = (Get-WmiObject win32_VideoController).name
-if (!($GPU.contains($graphics))) {
-    Write-host "Boo"
-    Break
-}
-#>
 
 #Region FFMPEG Files
+$FFMPEG = "C:\FFMPEG"
+$Resources = "$FFMPEG\_Conversion"
 $Encoder = "$FFMPEG\bin\ffmpeg.exe"
 If (!( Test-Path -Path $Encoder )) {
     if (!(Test-Path "C:\Temp")) {
