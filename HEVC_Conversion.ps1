@@ -35,7 +35,7 @@ else {
 #EndRegion
 
 #Region Resource Files
-$Probe = 'C:\ffmpeg\bin\ffprobe.exe'
+$Probe = "$FFMPEG\bin\ffprobe.exe"
 If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $Log = "$Resources\ConversionLog.csv"
 If (!( Test-Path -Path $Log )) { 
