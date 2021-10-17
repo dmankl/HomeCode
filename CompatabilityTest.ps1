@@ -8,15 +8,15 @@ If (!( Test-Path -Path $GPU )) {
     Invoke-WebRequest -Uri $Url -OutFile $Output
 }
 $GPUs = Import-Csv -Path $GPU 
-$graphics = (Get-WmiObject win32_VideoController).name
+$graphics = (Get-CimInstance win32_VideoController).VideoProcessor
 if ($graphics.Length -gt 1) {
     ForEach ($Graphic in $graphics) {
-        if ($GPUs.contains($Graphic)) {
+        if ($GPUs.gpu -contains $Graphic) {
             $Compatible = "Yes"
         }
-    }
-    elseif ($GPUs -contains $graphics) {
-        $Compatible = "Yes"
+        elseif ($GPUs.gpu -contains $graphics) {
+            $Compatible = "Yes"
+        }
     }
 }
 if ($Compatible -ne "Yes") {
