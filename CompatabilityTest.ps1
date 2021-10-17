@@ -1,6 +1,7 @@
 ﻿#Future addition- check if your CPU/GPU Is capable of transcoding.
 $FFMPEG = "C:\FFMPEG"
 $Resources = "$FFMPEG\_Conversion"
+If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $GPU = "$Resources\GPU.csv"
 If (!( Test-Path -Path $GPU )) { 
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
@@ -20,7 +21,6 @@ if ($graphics.Length -gt 1) {
 elseif ($GPUs.gpu -contains $graphics) {
     $Compatible = "Yes"
 }
-
 
 if ($Compatible -eq "No") {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
