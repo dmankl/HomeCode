@@ -80,6 +80,7 @@ else {
 }
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
+$Errors = Import-Csv -Path $ErrorList -Delimiter "|"
 $Coding = 'Hardware', 'Software'
 $Functions = '0', '1', '2'
 #Endregion
@@ -137,7 +138,6 @@ if ($Functions -notcontains $LoadedDefaults.Function) {
     $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
 }
 else {
-    get-
     $Result = $LoadedDefaults.Function
 }
 switch ($Result) {
@@ -171,7 +171,7 @@ switch ($Result) {
         $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
         $Count = $Videos.count
         Write-Log "---Starting--Conversion--Process---"
-        Write-Host "$Videos.count Videos to be processed."
+        Write-Host "$Count Videos to be processed."
         For ($i = 0; $i -le ($Videos.count - 1); $i++) {
             Write-Progress -Activity 'Conversion status' -percentComplete ($i / $Videos.count * 100)
         }    
@@ -194,7 +194,7 @@ switch ($Result) {
                     Remove-item $Output
                     Write-Log
                     Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
-                    Write-output "Previous File Removed | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $ErrorList -Append
+                    Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                 }
                 Else { Rename-Item $Output -NewName $Final }
             }           
@@ -207,13 +207,13 @@ switch ($Result) {
                     if ($FVidtest -contains "codec_name=hevc") {
                         Remove-Item $Video
                         Write-Host "Found Already Converted file, Removing Non Converted File"
-                        Write-output "Converted file found. | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $ErrorList -Append
+                        Write-Output "Converted file found. | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                         Continue
                     }
                     else {
                         Remove-Item $Final
                         Write-Host "Found Duplicate Non-Converted file, Removing Non Converted File"
-                        Write-output "Non -Converted file found. | $Final" | Export-Csv -encoding utf8 -Delimiter "|" -Path $ErrorList -Append
+                        Write-output "Non -Converted file found. | $Final" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                     }
                 }
             }
@@ -223,7 +223,7 @@ switch ($Result) {
             #Checks if video is already HEVC, if it is then it will be added to exclusion list then move to the next video
             if ($Vidtest -contains "codec_name=hevc") {
                 Write-Host "$Vid is already converted." -ForegroundColor Cyan
-                Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
 
             } 
             else {   
@@ -265,8 +265,8 @@ switch ($Result) {
                     If ( $CSize -lt 10 ) {
                         Remove-item $Output
                         Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
-                        Write-output "Small Video Output | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $ErrorList -Append
-                        Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                        Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                        Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
                         Continue 
                     }
                     
@@ -284,12 +284,12 @@ switch ($Result) {
                         If (!( Test-Path $Video )) {
                             Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
                             Rename-Item $Output -NewName $Final
-                            Write-Output "$Final" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                            Write-Output "$Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
                             Continue 
                         }
                         Else {
                             Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
-                            Write-output "Couldnt Remove Video Possibly In Use | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $ErrorList -Append
+                            Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                             Add-Content $Rename "$Output" -Encoding "utf8"
                         }
                         Continue 
@@ -304,7 +304,7 @@ switch ($Result) {
                             Remove-Item $Output
                         }    
                         Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
-                        Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                        Write-Output "$Video" | Out-File -encoding utf8  -FIlePath $Xclude -Append
 
                         Continue 
                     }  
@@ -319,7 +319,7 @@ switch ($Result) {
                             Rename-Item $Output -NewName $Final
                         }  
                         Write-Host "Same Size. Removing Original."
-                        Write-output "$Vid | $Final" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                        Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
                         Continue 
                     }
                 }
@@ -327,8 +327,8 @@ switch ($Result) {
                 Else {
                     Write-Log
                     Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
-                    Write-output "Conversion Failed | $Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $ErrorList -Append
-                    Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                    Write-output "Conversion Failed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                    Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
 
                 }
                 #Endregion PostConversion Checks
@@ -370,7 +370,7 @@ switch ($Result) {
                         }
                         else {
                             $Rename | Where-Object { $_.event -ne $RVideo } | Export-Csv -encoding utf8 -Path $Rename -Delimiter "|"
-                            Write-Host "Could Not Find $RVideo"
+                            Write-Host "Could Not Find $RVideo, Removed from Rename list."
                         }
                     }
                     #endregion RenameFile
@@ -419,7 +419,7 @@ switch ($Result) {
             $Vid = (Get-Item "$Video").Basename
             if ($Vidtest -contains "codec_name=hevc") {
                 Write-Host "$Vid is already converted." -ForegroundColor Cyan
-                Write-Output "$Video" | Export-Csv -encoding utf8 -Delimiter "|" -Path $Xclude -Append
+                Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
 
             }
         }
