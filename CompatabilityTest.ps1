@@ -15,14 +15,17 @@ if ($graphics.Length -gt 1) {
         if ($GPUs.gpu -contains $Graphic) {
             $Compatible = "Yes"
         }
-        elseif ($GPUs.gpu -contains $graphics) {
-            $Compatible = "Yes"
-        }
     }
 }
+elseif ($GPUs.gpu -contains $graphics) {
+    $Compatible = "Yes"
+}
+
+
 if ($Compatible -eq "No") {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
     Break
-}elseif ($Compatible -eq "Yes") {
+}
+elseif ($Compatible -eq "Yes") {
     Read-Host "Congratulations! You can convert videos!"
 }
