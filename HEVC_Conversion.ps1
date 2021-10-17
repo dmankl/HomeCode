@@ -134,10 +134,12 @@ if ($Functions -notcontains $LoadedDefaults.Function) {
     $DefaultChoice = 0
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
+    #Stores Function within Defaults CSV
     $LoadedDefaults | ForEach-Object { $LoadedDefaults.Function = "$Result" } 
     $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
 }
 else {
+    #Locads Default Function
     $Result = $LoadedDefaults.Function
 }
 switch ($Result) {
@@ -162,7 +164,7 @@ switch ($Result) {
             $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
         }
         else {
-            #Loads from Default CSV
+            #Loads Hardware/Software from Default CSV
             $Transcode = $LoadedDefaults.Transcode
         }
         
@@ -200,17 +202,18 @@ switch ($Result) {
             }           
             
             #Possible Duplicate check, Verifies there is another file, Checks if there was a converted file
-            #If converted file is already HEVC removes about to be converted file, otherwise removes possible duplicate
             if ($Video -ne $Final) {            
                 If ( Test-Path $Final ) {
                     $FVidtest = & $Probe -v error -show_format -show_streams $Video 
                     if ($FVidtest -contains "codec_name=hevc") {
+                        #If converted file is already HEVC removes about to be converted file
                         Remove-Item $Video
                         Write-Host "Found Already Converted file, Removing Non Converted File"
                         Write-Output "Converted file found. | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                         Continue
                     }
                     else {
+                        #Removes video that would be duplicate
                         Remove-Item $Final
                         Write-Host "Found Duplicate Non-Converted file, Removing Non Converted File"
                         Write-output "Non -Converted file found. | $Final" | Out-File -encoding utf8 -FilePath $ErrorList -Append
@@ -234,7 +237,7 @@ switch ($Result) {
                 Write-Log
                 Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
-                #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = SOftware
+                #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = Software
                 If ( $Transcode -eq "Hardware" ) {
                     if ($Vidtest -contains "codec_name=mov_text") {
                         & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
