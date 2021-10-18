@@ -240,10 +240,10 @@ switch ($Result) {
                 #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = Software
                 If ( $Transcode -eq "Hardware" ) {
                     if ($Vidtest -contains "codec_name=mov_text") {
-                        & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                        & $Encoder -hwaccel nvdec -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                     }
                     else {
-                        & $Encoder $Decode -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                        & $Encoder -hwaccel nvdec -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
                     } 
                 }
                 If ( $Transcode -eq "Software" ) {
