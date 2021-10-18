@@ -1,4 +1,5 @@
 ﻿#Future addition- check if your CPU/GPU Is capable of transcoding.
+$FFMPEG = "C:\FFMPEG"
 $Resources = "C:\FFMPEG\_Conversion"
 If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $GPU = "$Resources\GPU.csv"
