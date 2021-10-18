@@ -2,10 +2,10 @@
 function Confirm-CompatibleHardwareEncoder {
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
     $GPUs = Invoke-WebRequest -Uri $Url -UseBasicParsing | ConvertFrom-Csv
-    $graphicsCards = @(Get-CimInstance win32_VideoController)
+    $graphicsCards = @(Get-CimInstance win32_VideoController).VideoProcessor -Replace 'NVIDIA', ''
     $supportedGPU = @()
     ForEach ($Graphic in $graphicsCards) {
-        if ($GPUs.gpu -contains $Graphic.VideoProcessor) {
+        if ($GPUs.gpu -contains $Graphic) {
             $supportedGPU += $Graphic
         }
     }
