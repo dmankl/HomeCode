@@ -18,7 +18,8 @@ function Confirm-CompatibleHardwareEncoder {
 }
 
 if (Confirm-CompatibleHardwareEncoder) {
-    Read-Host "Congratulations! You can convert videos!"
+    $URL = "https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString("$URL"))
 }else {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
     Break
