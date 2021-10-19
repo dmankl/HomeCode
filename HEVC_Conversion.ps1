@@ -25,8 +25,8 @@ Function Get-Folder {
     }
 }
 #Function to write into Logs
-Function Write-Log($string) {
-    $dateTimeNow = Get-Date -Format "MM.dd.yyyy - HH:mm:ss"
+Function Show-Time($string) {
+    $dateTimeNow = Get-Date -Format "HH:mm:ss-MM.dd.yyyy"
     $outStr = "" + $dateTimeNow + " " + $string 
     Write-Output $outStr 
 }
@@ -193,7 +193,7 @@ switch ($Result) {
         Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
         $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
         $Count = $Videos.count
-        Write-Log "---Starting--Conversion--Process---"
+        Show-Time "---Starting--Conversion--Process---"
         Write-Host "$Count Videos to be processed."
         For ($i = 0; $i -le ($Videos.count - 1); $i++) {
             Write-Progress -Activity 'Conversion status' -percentComplete ($i / $Videos.count * 100)
@@ -215,7 +215,7 @@ switch ($Result) {
             If ( Test-Path $Output ) {
                 If ( Test-Path $Final ) {
                     Remove-item $Output
-                    Write-Log
+                    Show-Time
                     Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
                     Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                 }
@@ -255,7 +255,7 @@ switch ($Result) {
                 
                 #Gets Current File Size
                 $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
-                Write-Log
+                Show-Time
                 Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
                 #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = Software
@@ -289,7 +289,7 @@ switch ($Result) {
                     #Gets converted Video Sizes for Comparison
                     $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
 
-                    Write-Log
+                    Show-Time
                     Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
                     
                     #Removes output video file if it was converted incorrectly, adds to the exclusion list   
@@ -356,7 +356,7 @@ switch ($Result) {
                 }
                 #If a video file was not produced it will be added to exclusion list
                 Else {
-                    Write-Log
+                    Show-Time
                     Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
                     Write-output "Conversion Failed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                     Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
@@ -382,7 +382,7 @@ switch ($Result) {
                     #Gets files from the $Rename file and tries to rename them while removing themm from the CSV
                     $RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList -and $_.extension -in ".mkv" } | ForEach-Object { $_.FullName } | Sort-Object
                     $Count = $RVideos.count
-                    Write-Log "---Starting--Renaming--Process---"
+                    Show-Time "---Starting--Renaming--Process---"
                     Write-Host "$Count Videos to be processed."
 
                     #Renaming Processing
