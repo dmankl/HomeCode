@@ -258,31 +258,26 @@ switch ($Result) {
                 Show-Time
                 Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
-                #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = Software
-
-                $ArgumentList = " -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s?"
-
-                If ( Confirm-CompatibleHardwareEncoder) {
-                    Write-Host 'Using GPU'
-                    $ArgumentList = ' -hwaccel nvdec' + $ArgumentList
-                    $ArgumentList += ' -c:v hevc_nvenc -qp 27'
-                }
-                else {
-                    Write-Host 'Using CPU'
-                    $ArgumentList += ' -c:v libx265 -crf 27'
-                }
-                
-                if ($Vidtest -contains "codec_name=mov_text") {
-                    Write-Host 'Copying Subs'
-                    $ArgumentList += ' -c:s srt '
-                }
-                else {
-                    $ArgumentList += ' -c:s copy '
+                #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
+                switch (Confirm-CompatibleHardwareEncoder) {
+                    "$true" {
+                        if ($Vidtest -contains "codec_name=mov_text") {
+                            & $Encoder -hwaccel nvdec -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                        }
+                        else {
+                            & $Encoder -hwaccel nvdec -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                        }
+                    }
+                    "$false" {
+                        if ($Vidtest -contains "codec_name=mov_text") {
+                            & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                        }
+                        else {
+                            & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
+                        }
+                    }
                 }
                 
-                $ArgumentList += $outputVideo
-                measure-command { Start-Process -FilePath $Encoder -ArgumentList $ArgumentList -Wait -NoNewWindow }
-
                 #Verifies a file was created -if it isnt then something went wrong with the conversion
                 If ( Test-Path $Output ) {
 
