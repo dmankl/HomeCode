@@ -281,7 +281,7 @@ switch ($Result) {
                 }
                 
                 $ArgumentList += $outputVideo
-                measure-command { Start-Process -FilePath ffmpeg.exe -ArgumentList $ArgumentList -Wait -NoNewWindow }
+                measure-command { Start-Process -FilePath $Encoder -ArgumentList $ArgumentList -Wait -NoNewWindow }
 
                 #Verifies a file was created -if it isnt then something went wrong with the conversion
                 If ( Test-Path $Output ) {
