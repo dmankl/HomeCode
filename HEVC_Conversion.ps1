@@ -47,13 +47,15 @@ function Confirm-CompatibleHardwareEncoder {
         return $false
     }
 }
+#EndRegion Functions
+
+#Region Verification
 if (!(Confirm-CompatibleHardwareEncoder)) {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
     Break
 }
-#EndRegion Functions
-
 Write-Host "Verifying/Creating Supporting files."
+#EndRegion Verification
 
 #Region FFMPEG Files
 $FFMPEG = "C:\FFMPEG"
@@ -163,6 +165,7 @@ if ($LoadedDefaults.RanOnce -eq "No") {
 }
 #EndRegion RanOnce
 
+#Region Script
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
@@ -349,8 +352,10 @@ Foreach ($Video in $Videos) {
         }
         #Endregion PostConversion Checks
     }
-}  
-  
+}
+#EndRegion VideoBatch
+#EndRegion Script
+
 #Region RenameFile
 #Renames Files that were not able to be renamed 
 $RFileList = Get-Content -Path $Rename
