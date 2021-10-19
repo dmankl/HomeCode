@@ -399,6 +399,7 @@ if ($RFileList.Length -gt 2) {
     }
 }
 #EndRegion RenameFile
+
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
