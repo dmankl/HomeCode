@@ -122,7 +122,7 @@ $Default = "$Resources\Defaults.csv"
 If (!( Test-Path -Path $Default )) { 
     $Defaults = [pscustomobject]@{
         'Path'    = ''
-        'RanOnce' = 'No'
+        'RanOnce' = ''
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation
 }
@@ -135,7 +135,7 @@ $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
 #Endregion Resource Files
 
 #Region RanOnce
-if ($LoadedDefaults.RanOnce -eq "No") {
+if ($LoadedDefaults.RanOnce -ne "Yes") {
     $Title = "Baseline"
     $Message = "Would you like to exclude your already converted files?"
     $Options = "&Yes", "&No"
@@ -275,86 +275,91 @@ Foreach ($Video in $Videos) {
                 }
             }
         }
-                
+   
+        #Region PostConversion Checks
+
         #Verifies a file was created -if it isnt then something went wrong with the conversion
-        If ( Test-Path $Output ) {
+        switch (Test-Path $Output ) {
+            "$True" {
+                                    
+                #Gets converted Video Sizes for Comparison
+                $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
 
-            #Gets converted Video Sizes for Comparison
-            $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
-
-            Show-Time
-            Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
+                Show-Time
+                Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
                     
-            #Removes output video file if it was converted incorrectly, adds to the exclusion list   
-            If ( $CSize -lt 10 ) {
-                Remove-item $Output
-                Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
-                Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                Continue 
-            }
-                    
-            #Region PostConversion Checks
-            #Removes Original file if it is bigger than the converted file
-            If ( $OSize -gt $CSize ) {
-                Remove-Item $Video
-                #Checks that the Original file was deleted, if not it tried to remove again
-                if (Test-Path $Video) {
-                    Start-Sleep -Seconds 15
-                    Write-host "Waiting 15 Seconds."
-                    Remove-Item $Video
-                }   
-                #If the Original File was removed , it renames the temp file
-                If (!( Test-Path $Video )) {
-                    Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
-                    Rename-Item $Output -NewName $Final
-                    Write-Output "$Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                #Removes output video file if it was converted incorrectly, adds to the exclusion list   
+                If ( $CSize -lt 10 ) {
+                    Remove-item $Output
+                    Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
+                    Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                    Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
                     Continue 
                 }
-                Else {
-                    Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
-                    Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                    Add-Content $Rename "$Output" -Encoding "utf8"
-                }
-                Continue 
-            }
-    
-            #Removes Converted File if it is bigger than the original file
-            If ( $OSize -lt $CSize ) {
-                Remove-Item $Output
-                if (Test-Path $Output) {
-                    Start-Sleep -Seconds 15
-                    Write-host "Waiting 15 Seconds."
-                    Remove-Item $Output
-                }    
-                Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
-                Write-Output "$Video" | Out-File -encoding utf8  -FIlePath $Xclude -Append
-
-                Continue 
-            }  
-    
-            #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
-            If ( $OSize -eq $CSize ) {
-                Remove-Item $Video
-                if (Test-Path $Video) {
-                    Start-Sleep -Seconds 15
-                    Write-host "Waiting 15 Seconds."
+                 
+                #Removes Original file if it is bigger than the converted file
+                If ( $OSize -gt $CSize ) {
                     Remove-Item $Video
-                    Rename-Item $Output -NewName $Final
+                    #Checks that the Original file was deleted, if not it tried to remove again
+                    if (Test-Path $Video) {
+                        Start-Sleep -Seconds 15
+                        Write-host "Waiting 15 Seconds."
+                        Remove-Item $Video
+                    }   
+                    #If the Original File was removed , it renames the temp file
+                    If (!( Test-Path $Video )) {
+                        Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
+                        Rename-Item $Output -NewName $Final
+                        Write-Output "$Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                        Continue 
+                    }
+                    Else {
+                        Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
+                        Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                        Add-Content $Rename "$Output" -Encoding "utf8"
+                    }
+                    Continue 
+                }
+    
+                #Removes Converted File if it is bigger than the original file
+                If ( $OSize -lt $CSize ) {
+                    Remove-Item $Output
+                    if (Test-Path $Output) {
+                        Start-Sleep -Seconds 15
+                        Write-host "Waiting 15 Seconds."
+                        Remove-Item $Output
+                    }    
+                    Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
+                    Write-Output "$Video" | Out-File -encoding utf8  -FIlePath $Xclude -Append
+
+                    Continue 
                 }  
-                Write-Host "Same Size. Removing Original."
-                Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                Continue 
+    
+                #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
+                If ( $OSize -eq $CSize ) {
+                    Remove-Item $Video
+                    if (Test-Path $Video) {
+                        Start-Sleep -Seconds 15
+                        Write-host "Waiting 15 Seconds."
+                        Remove-Item $Video
+                        Rename-Item $Output -NewName $Final
+                    }  
+                    Write-Host "Same Size. Removing Original."
+                    Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                    Continue 
+
+                }
+            }
+            "$False" {
+                #If a video file was not produced it will be added to exclusion list
+
+                Show-Time
+                Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
+                Write-output "Conversion Failed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
             }
         }
-        #If a video file was not produced it will be added to exclusion list
-        Else {
-            Show-Time
-            Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
-            Write-output "Conversion Failed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-            Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
-
-        }
+  
         #Endregion PostConversion Checks
     }
 }
