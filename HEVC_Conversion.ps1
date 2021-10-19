@@ -1,3 +1,6 @@
+#Region Whole
+
+#Region Intro
 <#  Batch Convert to HEVC with FFMPEG using Nvidia graphics card or using your cpu
     This Script uses FFMPEG, If you do not have it then it will download it and put it in the right location
     The defaults For the conversion process are good but if you want better quality lower the number on line# 111 or 114
@@ -8,6 +11,8 @@
     this helps speed up the processes if you need to stop the script and pick back up where you left off.
     Enjoy. -Dmankl
 #>
+#EndRegion Intro
+
 #Region Functions
 #Function to display Folder selector and exit script if cancelled
 Function Get-Folder {
@@ -400,10 +405,13 @@ if ($RFileList.Length -gt 2) {
 }
 #EndRegion RenameFile
 
+#Region END
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
+#EndRegion END
 
+#Region FUTURE
 <#
 Look to add to script
 Quality Varitation as a factor of removing one or the other
@@ -419,3 +427,6 @@ Add GUI
 Add test to see if Hardware/Software is possible
 Add test to see if 264 files are in the exclusion list
 #>
+#EndRegion FUTURE
+
+#EndRegion Whole
