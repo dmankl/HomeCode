@@ -8,6 +8,50 @@
     this helps speed up the processes if you need to stop the script and pick back up where you left off.
     Enjoy. -Dmankl
 #>
+#Region Functions
+#Function to display Folder selector and exit script if cancelled
+Function Get-Folder {
+    Add-Type -AssemblyName System.Windows.Forms
+    $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
+        SelectedPath        = $LoadedDefaults.Path
+        ShowNewFolderButton = $false
+    }
+    $Res = $FolderBrowser.ShowDialog()
+    if ($Res -ne "OK") {
+        Break
+    }
+    else {
+        Return     $FolderBrowser.SelectedPath 
+    }
+}
+#Function to write into Logs
+Function Write-Log($string) {
+    $dateTimeNow = Get-Date -Format "MM.dd.yyyy - HH:mm:ss"
+    $outStr = "" + $dateTimeNow + " " + $string 
+    Write-Output $outStr 
+}
+function Confirm-CompatibleHardwareEncoder {
+    $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
+    $GPUs = Invoke-WebRequest -Uri $Url -UseBasicParsing | ConvertFrom-Csv
+    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.VideoProcessor -like "NVIDIA*" } | ForEach-Object { $_.VideoProcessor -Replace 'NVIDIA ', '' }
+    $supportedGPU = @()
+    ForEach ($Graphic in $graphicsCards) {
+        if ($GPUs.gpu -contains $Graphic) {
+            $supportedGPU += $Graphic
+        }
+    }
+    if ($supportedGPU.count -ge 0) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+if (!(Confirm-CompatibleHardwareEncoder)) {
+    Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
+    Break
+}
+#End Region
 
 Write-Host "Verifying/Creating Supporting files."
 
@@ -32,6 +76,7 @@ If (!( Test-Path -Path $Encoder )) {
 else {
     Write-Host "Found The files, Lets get started."
 }
+$Env:Path += "$FFMPEG\bin\"
 #EndRegion
 
 #Region Resource Files
@@ -84,30 +129,6 @@ $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
 $Coding = 'Hardware', 'Software'
 $Functions = '0', '1', '2'
 #Endregion
-
-#Region Functions
-#Function to display Folder selector and exit script if cancelled
-Function Get-Folder {
-    Add-Type -AssemblyName System.Windows.Forms
-    $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
-        SelectedPath        = $LoadedDefaults.Path
-        ShowNewFolderButton = $false
-    }
-    $Res = $FolderBrowser.ShowDialog()
-    if ($Res -ne "OK") {
-        Break
-    }
-    else {
-        Return     $FolderBrowser.SelectedPath 
-    }
-}
-#Function to write into Logs
-Function Write-Log($string) {
-    $dateTimeNow = Get-Date -Format "MM.dd.yyyy - HH:mm:ss"
-    $outStr = "" + $dateTimeNow + " " + $string 
-    Write-Output $outStr 
-}
-#End Region
 
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
@@ -238,22 +259,29 @@ switch ($Result) {
                 Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
                 #Converts video Depending on $Transcode variable. EIther GPU = Hardware or CPU = Software
-                If ( $Transcode -eq "Hardware" ) {
-                    if ($Vidtest -contains "codec_name=mov_text") {
-                        & $Encoder -hwaccel nvdec -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
-                    }
-                    else {
-                        & $Encoder -hwaccel nvdec -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
-                    } 
+
+                $ArgumentList = " -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s?"
+
+                If ( Confirm-CompatibleHardwareEncoder) {
+                    Write-Host 'Using GPU'
+                    $ArgumentList = ' -hwaccel nvdec' + $ArgumentList
+                    $ArgumentList += ' -c:v hevc_nvenc -qp 27'
                 }
-                If ( $Transcode -eq "Software" ) {
-                    if ($Vidtest -contains "codec_name=mov_text") {
-                        & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s srt "$Output" 
-                    } 
-                    else {
-                        & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output" 
-                    }
+                else {
+                    Write-Host 'Using CPU'
+                    $ArgumentList += ' -c:v libx265 -crf 27'
                 }
+                
+                if ($Vidtest -contains "codec_name=mov_text") {
+                    Write-Host 'Copying Subs'
+                    $ArgumentList += ' -c:s srt '
+                }
+                else {
+                    $ArgumentList += ' -c:s copy '
+                }
+                
+                $ArgumentList += $outputVideo
+                measure-command { Start-Process -FilePath ffmpeg.exe -ArgumentList $ArgumentList -Wait -NoNewWindow }
 
                 #Verifies a file was created -if it isnt then something went wrong with the conversion
                 If ( Test-Path $Output ) {
