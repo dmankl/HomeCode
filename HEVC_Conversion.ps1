@@ -256,21 +256,17 @@ Foreach ($Video in $Videos) {
         switch (Confirm-CompatibleHardwareEncoder) {
             "$true" {
                 if ($Vidtest -contains "codec_name=mov_text") {
-                    Read-Host "GPU/SRT"
                     & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
                 else {
-                    Read-Host "GPU/COPY"
                     & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
                 }
             }
             "$false" {
                 if ($Vidtest -contains "codec_name=mov_text") {                            
-                    Read-Host "CPU/SRT"
                     & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
                 else {
-                    Read-Host "CPU/COPY"
                     & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
                 }
             }
