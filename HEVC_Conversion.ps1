@@ -57,7 +57,6 @@ function Confirm-CompatibleHardwareEncoder {
 #Region Verification
 if (!(Confirm-CompatibleHardwareEncoder)) {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
-    Break
 }
 Write-Host "Verifying/Creating Supporting files."
 #EndRegion Verification
