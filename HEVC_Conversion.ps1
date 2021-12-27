@@ -77,7 +77,7 @@ If (!( Test-Path -Path $Encoder )) {
     $Output = "C:\Temp\ffmpeg.zip"
     Invoke-WebRequest -Uri $Url -OutFile $Output
     Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
-    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
+    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse -Force
     Remove-Item $Output
 }
 else {
@@ -129,15 +129,6 @@ If (!( Test-Path -Path $Default )) {
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
-if (!(Test-Path $Encoder)) {
-    if (Test-Path $FFMPEG\bin) { Remove-Item $FFMPEG\bin }
-    if (Test-Path $FFMPEG\doc) { Remove-Item $FFMPEG\doc }
-    if (Test-Path $FFMPEG\presets) { Remove-Item $FFMPEG\presets }
-    if (Test-Path $FFMPEG\license) { Remove-Item $FFMPEG\license }
-    if (Test-Path $FFMPEG\README.txt) { Remove-Item $FFMPEG\README.txt }
-    Read-Host "Rerun script"
-    Break
-}
 #Endregion Resource Files
 
 #Region RanOnce
@@ -159,7 +150,6 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
                 if ($Vidtest -contains "codec_name=hevc") {
                     Write-Host "$Vid is already converted." -ForegroundColor Cyan
                     Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
-     
                 }
             } 
             #Stores RanOnce into default CSV
@@ -171,10 +161,9 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
             $LoadedDefaults | ForEach-Object { $LoadedDefaults.RanOnce = "Yes" } 
             $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
         }
-  
     }
 }
-elseif ($LoadedDefaults.RanOnce -eq "Yes") {
+else {
     $Title = "Reset Defaults"
     $Message = "Do you need to reset your default settings, Press enter to continue?"
     $Options = "&Yes", "&No"
@@ -183,17 +172,16 @@ elseif ($LoadedDefaults.RanOnce -eq "Yes") {
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
     switch ($Result) {
         "0" {
-            Remove-Item $Default
+            remove-item $Default
             if (!(Test-path $default)) {
-                Write-host "Reset complete,Exiting script.."
-                Break
+                Read-host "Reset complete,Exiting script.."
+                exit
             }
         }
         "1" {
             Continue
         }
     }
-
 }
 #EndRegion RanOnce
 
@@ -201,7 +189,6 @@ elseif ($LoadedDefaults.RanOnce -eq "Yes") {
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
-
 
 #Gets Directory 
 $Directory = Get-Folder
@@ -370,7 +357,6 @@ Foreach ($Video in $Videos) {
                     Write-Host "Same Size. Removing Original."
                     Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
                     Continue 
-
                 }
             }
             "$False" {
@@ -381,7 +367,6 @@ Foreach ($Video in $Videos) {
                 Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
             }
         }
-  
         #Endregion PostConversion Checks
     }
 }
