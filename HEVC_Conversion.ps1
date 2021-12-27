@@ -129,6 +129,9 @@ If (!( Test-Path -Path $Default )) {
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
+
+#Gets Directory 
+$Directory = Get-Folder
 #Endregion Resource Files
 
 #Region RanOnce
@@ -189,9 +192,6 @@ else {
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
-
-#Gets Directory 
-$Directory = Get-Folder
 
 #Stores Directory into default CSV
 $LoadedDefaults | ForEach-Object { $LoadedDefaults.Path = "$Directory" } 
