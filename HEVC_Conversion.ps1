@@ -15,6 +15,8 @@
 
 #Region Functions
 #Function to display Folder selector and exit script if cancelled
+Write-Host"working on expanded stuff"
+Break
 Function Get-Folder {
     Add-Type -AssemblyName System.Windows.Forms
     $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
