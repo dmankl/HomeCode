@@ -170,17 +170,17 @@ else {
     $Message = "Do you need to reset your default settings, Press enter to continue?"
     $Options = "&Yes", "&No"
 
-    $DefaultChoice = "No"
+    $DefaultChoice = "1"
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
         switch ($Result) {
-            "Yes"{
+            "0"{
                 Remove-Item $Default
                 if(!(Test-path $default)){
                 Write-host "Reset complete,Exiting script.."
                 Break
                 }
             }
-            "No"{
+            "1"{
                 Continue
             }
         }
