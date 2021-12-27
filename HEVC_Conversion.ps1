@@ -129,9 +129,6 @@ If (!( Test-Path -Path $Default )) {
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
-
-#Gets Directory 
-$Directory = Get-Folder
 #Endregion Resource Files
 
 #Region RanOnce
@@ -144,6 +141,9 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
 
     switch ($Result) {
         "0" {
+            #Gets Directory 
+            $Directory = Get-Folder
+
             #Creates/Adds Converted Videos to Exclusion List
             Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
             $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
@@ -158,6 +158,9 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
             #Stores RanOnce into default CSV
             $LoadedDefaults | ForEach-Object { $LoadedDefaults.RanOnce = "Yes" } 
             $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+
+            #Reloads exclusions after creating baseline
+            $FileList = Import-Csv -Path $Xclude -Delimiter "|"
         }
         "1" {
             #Stores RanOnce into default CSV
@@ -192,6 +195,9 @@ else {
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
+
+#Gets Directory 
+$Directory = Get-Folder
 
 #Stores Directory into default CSV
 $LoadedDefaults | ForEach-Object { $LoadedDefaults.Path = "$Directory" } 
