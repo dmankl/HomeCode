@@ -70,8 +70,8 @@ If (!( Test-Path -Path $Encoder )) {
     if (!(Test-Path "C:\Temp")) {
         New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
     }
-    if (!(Test-Path "$FFMPEG\bin")) {
-        New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
+    if (!(Test-Path "$FFMPEG")) {
+        New-Item -Path "c:\" -Name "FFMPEG" -ItemType "Directory"
     }
     $Url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
     $Output = "C:\Temp\ffmpeg.zip"
@@ -129,6 +129,15 @@ If (!( Test-Path -Path $Default )) {
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
+if (!(Test-Path $Encoder)) {
+    if (Test-Path $FFMPEG\bin) { Remove-Item $FFMPEG\bin }
+    if (Test-Path $FFMPEG\doc) { Remove-Item $FFMPEG\doc }
+    if (Test-Path $FFMPEG\presets) { Remove-Item $FFMPEG\presets }
+    if (Test-Path $FFMPEG\license) { Remove-Item $FFMPEG\license }
+    if (Test-Path $FFMPEG\README.txt) { Remove-Item $FFMPEG\README.txt }
+    Read-Host "Rerun script"
+    Break
+}
 #Endregion Resource Files
 
 #Region RanOnce
@@ -172,18 +181,18 @@ elseif ($LoadedDefaults.RanOnce -eq "Yes") {
 
     $DefaultChoice = "1"
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-        switch ($Result) {
-            "0"{
-                Remove-Item $Default
-                if(!(Test-path $default)){
+    switch ($Result) {
+        "0" {
+            Remove-Item $Default
+            if (!(Test-path $default)) {
                 Write-host "Reset complete,Exiting script.."
                 Break
-                }
-            }
-            "1"{
-                Continue
             }
         }
+        "1" {
+            Continue
+        }
+    }
 
 }
 #EndRegion RanOnce
