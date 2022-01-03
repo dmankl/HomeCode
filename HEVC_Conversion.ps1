@@ -428,9 +428,9 @@ Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And 
 $Title = "Complete"
     $Message = "Do you want to convert more videos?"
     $Options = "&Yes", "&No"
-    $DefaultChoice = "No"
+    $DefaultChoice = "1"
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-} until ($Result -eq "No")
+} until ($Result -eq "1")
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
 #EndRegion END
