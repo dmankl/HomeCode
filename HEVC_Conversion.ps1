@@ -428,7 +428,7 @@ do {
     $Title = "Complete"
     $Message = "Do you want to convert more videos?"
     $Options = "&Yes", "&No"
-    $DefaultChoice = "1"
+    $DefaultChoice = 1
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 } until ($Result -eq "1")
 Stop-Transcript
