@@ -195,7 +195,7 @@ else {
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
-
+do {
 #Gets Directory 
 $Directory = Get-Folder
 
@@ -425,6 +425,12 @@ if ($RFileList.Length -gt 2) {
 
 #Region END
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
+$Title = "Complete"
+    $Message = "Do you want to convert more videos?"
+    $Options = "&Yes", "&No"
+    $DefaultChoice = "No"
+    $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
+} until ($Result -eq "No")
 Stop-Transcript
 Read-Host -Prompt "Press Enter To Exit Script"
 #EndRegion END
