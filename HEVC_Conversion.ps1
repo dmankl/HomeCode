@@ -126,9 +126,6 @@ If (!( Test-Path -Path $Default )) {
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation
 }
-else {
-    #Insert Instructions to reset defaults
-}
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
@@ -168,12 +165,34 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
   
     }
 }
+else {
+    $Title = "Reset Defaults"
+    $Message = "Do you need to reset your default settings, Press enter to continue?"
+    $Options = "&Yes", "&No"
+
+    $DefaultChoice = "No"
+    $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
+        switch ($Result) {
+            "Yes"{
+                Remove-Item $Default
+                if(!(Test-path $default)){
+                Write-host "Reset complete,Exiting script.."
+                Break
+                }
+            }
+            "No"{
+                Continue
+            }
+        }
+
+}
 #EndRegion RanOnce
 
 #Region Script
 #INtroduction to script
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
+
 
 #Gets Directory 
 $Directory = Get-Folder
@@ -195,7 +214,7 @@ $Count = $Videos.count
 Show-Time "---Starting--Conversion--Process---"
 Write-Host "$Count Videos to be processed." 
 
-#Region Video Batch
+#Region VideoBatch
 Foreach ($Video in $Videos) {
     #Video Scanner
     $Vidtest = & $Probe -v error -show_format -show_streams $Video 
