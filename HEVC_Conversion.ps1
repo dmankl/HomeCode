@@ -94,21 +94,21 @@ If (!( Test-Path -Path $Log )) {
     $Logs = [pscustomobject]@{
         'Event' = ''
     }
-    Export-Csv -InputObject $Logs -Path $Log -Delimiter "|" -NoTypeInformation
+    Export-Csv -InputObject $Logs -Path $Log -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $Xclude = "$Resources\Exclude.Csv"
 If (!( Test-Path -Path $Xclude )) { 
     $Xclusions = [pscustomobject]@{
         'Path' = ''
     }
-    Export-Csv -InputObject $Xclusions -Path $Xclude -Delimiter "|" -NoTypeInformation
+    Export-Csv -InputObject $Xclusions -Path $Xclude -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $Rename = "$Resources\Rename.csv"
 If (!( Test-Path -Path $Rename )) {     
     $Renames = [pscustomobject]@{
         'Path' = 'Null'
     }
-    Export-Csv -InputObject $Renames -Path $Rename -Delimiter "|" -NoTypeInformation 
+    Export-Csv -InputObject $Renames -Path $Rename -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $ErrorList = "$Resources\ErrorList.csv"
 if (!(Test-Path $ErrorList)) {
@@ -116,7 +116,7 @@ if (!(Test-Path $ErrorList)) {
         'Error' = ''
         'File'  = ''
     }
-    Export-Csv -InputObject $Errors -Path $ErrorList -Delimiter "|" -NoTypeInformation
+    Export-Csv -InputObject $Errors -Path $ErrorList -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $Default = "$Resources\Defaults.csv"
 If (!( Test-Path -Path $Default )) { 
@@ -124,7 +124,7 @@ If (!( Test-Path -Path $Default )) {
         'Path'    = ''
         'RanOnce' = ''
     }
-    Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation
+    Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
@@ -196,6 +196,23 @@ Write-Host "Please select the folder you want to convert." -ForegroundColor Blac
 
 #Gets Directory 
 $Directory = Get-Folder
+
+#Removes Commas
+$Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | ForEach-Object { $_.FullName } | Sort-Object 
+foreach ($Video in $Videos) {
+    if ($Video.Contains(",")) {
+        $Vidz = $Video -Replace ',', ''
+        $Path = Split-Path $Vidz
+        if (!(Test-Path $Path)) {
+        New-Item -Path $Path -ItemType Directory
+        }
+       if (!(Test-Path $Vidz)) {
+        Move-item -path $Video -Destination $Vidz
+       }else {
+           Write-Host " Found $Video"
+       }
+    }
+}
 
 #Stores Directory into default CSV
 $LoadedDefaults | ForEach-Object { $LoadedDefaults.Path = "$Directory" } 
