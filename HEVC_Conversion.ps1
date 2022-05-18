@@ -170,7 +170,7 @@ else {
     $Message = "Do you need to reset your default settings, Press enter to continue?"
     $Options = "&Yes", "&No"
 
-    $DefaultChoice = "No"
+    $DefaultChoice = "0"
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
         switch ($Result) {
             "Yes"{
@@ -198,6 +198,7 @@ Write-Host "Please select the folder you want to convert." -ForegroundColor Blac
 $Directory = Get-Folder
 
 #Removes Commas
+Write-host "Please wait while we verify video names will not ruin exclusion files."
 $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | ForEach-Object { $_.FullName } | Sort-Object 
 foreach ($Video in $Videos) {
     if ($Video.Contains(",")) {
@@ -213,7 +214,7 @@ foreach ($Video in $Videos) {
        }
     }
 }
-
+Clear-Variable -Name "Videos"
 #Stores Directory into default CSV
 $LoadedDefaults | ForEach-Object { $LoadedDefaults.Path = "$Directory" } 
 $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
