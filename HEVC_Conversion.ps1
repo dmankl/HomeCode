@@ -100,6 +100,7 @@ $Xclude = "$Resources\Exclude.Csv"
 If (!( Test-Path -Path $Xclude )) { 
     $Xclusions = [pscustomobject]@{
         'Path' = ''
+        'File' = ''
     }
     Export-Csv -InputObject $Xclusions -Path $Xclude -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
@@ -143,13 +144,13 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
         "0" {
             #Creates/Adds Converted Videos to Exclusion List
             Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
-            $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
+            $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.File -notcontains $_.BaseName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
             Foreach ($Video in $Videos) {
                 $Vidtest = & $Probe -v error -show_format -show_streams $Video
                 $Vid = (Get-Item "$Video").Basename
                 if ($Vidtest -contains "codec_name=hevc") {
                     Write-Host "$Vid is already converted." -ForegroundColor Cyan
-                    Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
      
                 }
             } 
@@ -170,20 +171,20 @@ else {
     $Message = "Do you need to reset your default settings, Press enter to continue?"
     $Options = "&Yes", "&No"
 
-    $DefaultChoice = "1"
+    $DefaultChoice = 1
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-        switch ($Result) {
-            "Yes"{
-                Remove-Item $Default
-                if(!(Test-path $default)){
+    switch ($Result) {
+        "Yes" {
+            Remove-Item $Default
+            if (!(Test-path $default)) {
                 Write-host "Reset complete,Exiting script.."
                 Break
-                }
-            }
-            "No"{
-                Continue
             }
         }
+        "No" {
+            Continue
+        }
+    }
 
 }
 #EndRegion RanOnce
@@ -205,13 +206,14 @@ foreach ($Video in $Videos) {
         $Vidz = $Video -Replace ',', ''
         $Path = Split-Path $Vidz
         if (!(Test-Path $Path)) {
-        New-Item -Path $Path -ItemType Directory
+            New-Item -Path $Path -ItemType Directory
         }
-       if (!(Test-Path $Vidz)) {
-        Move-item -path $Video -Destination $Vidz
-       }else {
-           Write-Host " Found $Video"
-       }
+        if (!(Test-Path $Vidz)) {
+            Move-item -path $Video -Destination $Vidz
+        }
+        else {
+            Write-Host " Found $Video"
+        }
     }
 }
 Clear-Variable -Name "Videos"
@@ -227,7 +229,7 @@ Else { Start-Transcript -Path "$Log" -Append }
 #Real start of the script       
 #Gets The Videos To Convert, displays the amount of videos, progressbar 
 Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
-$Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.path -notcontains $_.FullName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
+$Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.File -notcontains $_.BaseName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
 $Count = $Videos.count
 Show-Time "---Starting--Conversion--Process---"
 Write-Host "$Count Videos to be processed." 
@@ -242,6 +244,14 @@ Foreach ($Video in $Videos) {
     $Vid = (Get-Item "$Video").Basename
     $Output = $Path + "\" + $Vid + '_MERGED' + '.mkv'
     $Final = $Path + "\" + $Vid + '.mkv'
+
+    #DuplicateCheck
+    $FileList = Import-Csv -Path $Xclude -Delimiter "|"
+    $Files = $FileList.File
+    if ($Files -notcontains $Vid) {
+        Write-host "Found duplicate file- $Vid"
+        Write-Output "Possible duplicate | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+    } 
 
     #Check If A Conversion Was Interrupted, Removes temp file if it was interrupted
     #If it was just not renamed it will rename it
@@ -280,7 +290,7 @@ Foreach ($Video in $Videos) {
     #Checks if video is already HEVC, if it is then it will be added to exclusion list then move to the next video
     if ($Vidtest -contains "codec_name=hevc") {
         Write-Host "$Vid is already converted." -ForegroundColor Cyan
-        Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
+        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
     } 
     else {   
         #Converts video If it is not already HEVC
@@ -326,8 +336,7 @@ Foreach ($Video in $Videos) {
                     Remove-item $Output
                     Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
                     Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                    Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                    Continue 
+                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                    Continue 
                 }
                  
                 #Removes Original file if it is bigger than the converted file
@@ -343,7 +352,7 @@ Foreach ($Video in $Videos) {
                     If (!( Test-Path $Video )) {
                         Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
                         Rename-Item $Output -NewName $Final
-                        Write-Output "$Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
                         Continue 
                     }
                     Else {
@@ -363,7 +372,7 @@ Foreach ($Video in $Videos) {
                         Remove-Item $Output
                     }    
                     Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
-                    Write-Output "$Video" | Out-File -encoding utf8  -FIlePath $Xclude -Append
+                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
                     Continue 
                 }  
     
@@ -387,7 +396,7 @@ Foreach ($Video in $Videos) {
                 Show-Time
                 Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
                 Write-output "Conversion Failed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                Write-Output "$Video" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
             }
         }
   
