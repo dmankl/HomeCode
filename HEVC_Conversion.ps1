@@ -170,7 +170,7 @@ else {
     $Message = "Do you need to reset your default settings, Press enter to continue?"
     $Options = "&Yes", "&No"
 
-    $DefaultChoice = "0"
+    $DefaultChoice = "1"
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
         switch ($Result) {
             "Yes"{
