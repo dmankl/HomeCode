@@ -21,9 +21,8 @@ Function Get-Folder {
     $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
         SelectedPath        = $LoadedDefaults.Path
         ShowNewFolderButton = $false
-        TopMost             = $true 
     }
-    $Res = $FolderBrowser.ShowDialog()
+    $Res = $FolderBrowser.ShowDialog((New-Object System.Windows.Forms.Form -Property @{TopMost = $true }))
     if ($Res -ne "OK") {
         Break
     }
