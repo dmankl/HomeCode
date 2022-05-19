@@ -131,6 +131,7 @@ If (!( Test-Path -Path $Default )) {
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
+Clear-Host
 #Endregion Resource Files
 
 #Introduction
