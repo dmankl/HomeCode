@@ -140,7 +140,7 @@ Write-host "This script is to convert videos into the HEVC codec."
 #Provide SourceCode
 Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
 Write-Host "Warning! This script will modify files, exit now if you do not want this." -ForegroundColor DarkRed -BackgroundColor White
-Read-Host 
+Read-Host " "
 
 #Region RanOnce
 if ($LoadedDefaults.RanOnce -ne "Yes") {
