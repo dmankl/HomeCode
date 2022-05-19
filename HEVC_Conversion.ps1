@@ -63,13 +63,13 @@ function Confirm-CompatibleHardwareEncoder {
 }
 #EndRegion Functions
 
-#Region Verification
+<#Region Verification
 if (Confirm-CompatibleHardwareEncoder -eq $False) {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Tryinng using CPU."
     
 }
 Write-Host "Verifying/Creating Supporting files."
-#EndRegion Verification
+#EndRegion Verification#>
 
 #Region FFMPEG Files
 $FFMPEG = "C:\FFMPEG"
