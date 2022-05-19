@@ -39,7 +39,7 @@ Function Show-Time($string) {
 function Confirm-CompatibleHardwareEncoder {
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
     $GPUs = Invoke-WebRequest -Uri $Url -UseBasicParsing | ConvertFrom-Csv
-    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.VideoProcessor -like "NVIDIA*" -or $_.VideoProcessor -like "AMD*" }
+    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.Name -like "NVIDIA*" -or $_.Name -like "AMD*" }
     $supportedGPU = @()
     ForEach ($Graphic in $graphicsCards) {
         if ($GPUs.gpu -contains $Graphic) {
@@ -47,10 +47,10 @@ function Confirm-CompatibleHardwareEncoder {
         }
     }
     if ($supportedGPU.count -ge 0) {
-        if ($graphicsCards.VideoProcessor -like "NVIDIA*") {
+        if ($graphicsCards.Name -like "NVIDIA*") {
             Return "NVIDIA"
         }
-        if ($graphicsCards.VideoProcessor -like "AMD*") {
+        if ($graphicsCards.Name -like "AMD*") {
             Return "AMD"
         }
         else {
