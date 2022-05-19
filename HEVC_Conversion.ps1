@@ -65,10 +65,10 @@ function Confirm-CompatibleHardwareEncoder {
 
 #Region Verification
 $Test = Confirm-CompatibleHardwareEncoder
-#if (Confirm-CompatibleHardwareEncoder -eq $False) {
-#    Read-Host "$test"
-    
-#Write-Host "Verifying/Creating Supporting files."
+if (Confirm-CompatibleHardwareEncoder -eq $False) {
+    Read-Host "$test"
+}
+Write-Host "Verifying/Creating Supporting files."
 #EndRegion Verification
 
 #Region FFMPEG Files
