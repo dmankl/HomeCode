@@ -251,10 +251,10 @@ Foreach ($Video in $Videos) {
     $Vidtest = & $Probe -v error -show_format -show_streams $Video 
 
     #Filename information 
-    $Path = Split-Path $Video
+    $RootDirectory = Split-Path $Video
     $Vid = (Get-Item "$Video").Basename
-    $Output = $Path + "\" + $Vid + '_MERGED' + '.mkv'
-    $Final = $Path + "\" + $Vid + '.mkv'
+    $Output = "$RootDirectory\$($Vid)_MERGED.mkv"
+    $Final = "$RootDirectory\$Vid.mkv"
 
     #DuplicateCheck
     $FileList = Import-Csv -Path $Xclude -Delimiter "|"
