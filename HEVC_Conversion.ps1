@@ -144,7 +144,7 @@ Clear-Host
 #Endregion Resource Files
 
 #Introduction
-Write-Host "Beta"
+Write-Host "Beta - $Test"
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-host "This script is to convert videos into the HEVC codec."
 #Provide SourceCode
