@@ -64,9 +64,9 @@ function Confirm-CompatibleHardwareEncoder {
 #EndRegion Functions
 
 #Region Verification
-if (!(Confirm-CompatibleHardwareEncoder)) {
-    Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Exiting."
-    Break
+if ((Confirm-CompatibleHardwareEncoder -eq "CPU")) {
+    Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Tryinng using CPU."
+    
 }
 Write-Host "Verifying/Creating Supporting files."
 #EndRegion Verification
@@ -321,26 +321,26 @@ Foreach ($Video in $Videos) {
         switch (Confirm-CompatibleHardwareEncoder) {
             "AMD" {
                 if ($Vidtest -contains "codec_name=mov_text") {
-                    & $Encoder -i $Video -hide_banner -loglevel fatal -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
                 else {
-                    & $Encoder -i $Video -hide_banner -loglevel fatal -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
                 }
             }
             "CPU" {
                 if ($Vidtest -contains "codec_name=mov_text") {                            
-                    & $Encoder -i $Video -hide_banner -loglevel fatal -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
                 else {
-                    & $Encoder -i $Video -hide_banner -loglevel fatal -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
+                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
                 }
             }
             "NVIDIA" {
                 if ($Vidtest -contains "codec_name=mov_text") {
-                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel fatal -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
                 else {
-                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel fatal -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
                 }
             }
 
