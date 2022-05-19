@@ -64,7 +64,7 @@ function Confirm-CompatibleHardwareEncoder {
 #EndRegion Functions
 
 #Region Verification
-if ((Confirm-CompatibleHardwareEncoder -eq "CPU")) {
+if (!(Confirm-CompatibleHardwareEncoder -eq "CPU")) {
     Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Tryinng using CPU."
     
 }
