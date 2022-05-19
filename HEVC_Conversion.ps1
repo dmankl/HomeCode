@@ -248,7 +248,7 @@ Foreach ($Video in $Videos) {
     #DuplicateCheck
     $FileList = Import-Csv -Path $Xclude -Delimiter "|"
     $Files = $FileList.File
-    if ($Files -notcontains $Vid) {
+    if ($Files -contains $Vid) {
         Write-host "Found duplicate file- $Vid"
         Write-Output "Possible duplicate | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
     } 
@@ -471,6 +471,7 @@ Future Additions
 Add GUI
 Add test to see if Hardware/Software is possible
 Add test to see if 264 files are in the exclusion list
+Change defaults to json
 #>
 #EndRegion FUTURE
 
