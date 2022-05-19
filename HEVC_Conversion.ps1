@@ -33,7 +33,7 @@ Function Get-Folder {
 }
 #Function to write into Logs
 Function Show-Time($string) {
-    $dateTimeNow = Get-Date -Format "HH:mm-MM.dd"
+    $dateTimeNow = Get-Date -Format "HH:mm-MM.dd.yy"
     $outStr = "" + $dateTimeNow + " " + $string 
     Write-Output $outStr
 }
