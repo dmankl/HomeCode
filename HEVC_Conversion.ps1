@@ -32,9 +32,9 @@ Function Get-Folder {
 }
 #Function to write into Logs
 Function Show-Time($string) {
-    $dateTimeNow = Get-Date -Format "HH:mm:ss-MM.dd.yyyy"
+    $dateTimeNow = Get-Date -Format "HH:mm-MM.dd"
     $outStr = "" + $dateTimeNow + " " + $string 
-    Write-Output $outStr 
+    Write-Output $outStr
 }
 function Confirm-CompatibleHardwareEncoder {
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
@@ -196,8 +196,6 @@ else {
             Continue
         }
     }
-    $Result
-
 }
 #EndRegion RanOnce
 
@@ -444,7 +442,7 @@ if ($RFileList.Length -gt 2) {
                         Remove-item $RVid
                     }
                     Write-Host "Processing $RVid"                
-                    Get-Item $RVideo | Rename-Item -NewName { $_.Name -Replace '_MERGED', '' } 
+                    Get-Item $RVideo | Rename-Item -NewName $RVid 
                     if (Test-Path $RVid) {
                         $Rename | Where-Object { $_.event -ne $RVideo } | Export-Csv -encoding utf8 -Path $Rename -Delimiter "|"
                         Write-host "Renamed $RVid"
@@ -464,7 +462,7 @@ if ($RFileList.Length -gt 2) {
 #Region END
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
-Read-Host -Prompt "Press Enter To Exit Script"
+Read-Host -Prompt "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
 #EndRegion END
 
 #Region FUTURE
