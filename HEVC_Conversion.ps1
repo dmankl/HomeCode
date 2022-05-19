@@ -39,7 +39,7 @@ Function Show-Time($string) {
 function Confirm-CompatibleHardwareEncoder {
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
     $GPUs = Invoke-WebRequest -Uri $Url -UseBasicParsing | ConvertFrom-Csv
-    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.VideoProcessor -like "NVIDIA*" } | ForEach-Object { $_.VideoProcessor -Replace 'NVIDIA ', '' }
+    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.VideoProcessor -like "NVIDIA*" -or $_.VideoProcessor -like "AMD*" }
     $supportedGPU = @()
     ForEach ($Graphic in $graphicsCards) {
         if ($GPUs.gpu -contains $Graphic) {
@@ -47,7 +47,15 @@ function Confirm-CompatibleHardwareEncoder {
         }
     }
     if ($supportedGPU.count -ge 0) {
-        return $true
+        if ($graphicsCards.VideoProcessor -like "NVIDIA*") {
+            Return "NVIDIA"
+        }
+        if ($graphicsCards.VideoProcessor -like "AMD*") {
+            Return "AMD"
+        }
+        else {
+            Return "CPU"
+        }
     }
     else {
         return $false
@@ -140,7 +148,7 @@ Write-host "This script is to convert videos into the HEVC codec."
 #Provide SourceCode
 Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
 Write-Host "Warning! This script will modify files, exit now if you do not want this." -ForegroundColor DarkRed -BackgroundColor White
-Read-Host 
+Read-Host "Press Enter to start."
 
 #Region RanOnce
 if ($LoadedDefaults.RanOnce -ne "Yes") {
@@ -311,15 +319,15 @@ Foreach ($Video in $Videos) {
                 
         #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
         switch (Confirm-CompatibleHardwareEncoder) {
-            "$true" {
+            "AMD" {
                 if ($Vidtest -contains "codec_name=mov_text") {
-                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                    & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
                 else {
-                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                    & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
                 }
             }
-            "$false" {
+            "CPU" {
                 if ($Vidtest -contains "codec_name=mov_text") {                            
                     & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
@@ -327,6 +335,15 @@ Foreach ($Video in $Videos) {
                     & $Encoder -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
                 }
             }
+            "NVIDIA" {
+                if ($Vidtest -contains "codec_name=mov_text") {
+                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+                }
+                else {
+                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel error -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+                }
+            }
+
         }
    
         #Region PostConversion Checks
@@ -482,6 +499,7 @@ Add GUI
 Add test to see if Hardware/Software is possible
 Add test to see if 264 files are in the exclusion list
 Change defaults to json
+Add AMD commands 
 #>
 #EndRegion FUTURE
 
