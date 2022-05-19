@@ -16,6 +16,7 @@
 #Region Functions
 #Function to display Folder selector and exit script if cancelled
 Function Get-Folder {
+    Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
     Add-Type -AssemblyName System.Windows.Forms
     $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
         SelectedPath        = $LoadedDefaults.Path
@@ -132,6 +133,13 @@ $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
 #Endregion Resource Files
 
+#Introduction
+Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
+Write-host "This script is to convert videos into the HEVC codec."
+#Provide SourceCode
+Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
+Read-Host "Warning! This script will modify files, exit now if you do not want this."
+
 #Region RanOnce
 if ($LoadedDefaults.RanOnce -ne "Yes") {
     $Title = "Baseline"
@@ -143,7 +151,9 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
     switch ($Result) {
         "0" {
             #Creates/Adds Converted Videos to Exclusion List
-            Write-Host "Looking For Video Files. Please wait as this may take a while depending on the amount of files in the directories."
+            #Gets Directory 
+            $Directory = Get-Folder
+            Write-Host "Please wait while the exclusion list is being created."
             $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.File -notcontains $_.BaseName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
             Foreach ($Video in $Videos) {
                 $Vidtest = & $Probe -v error -show_format -show_streams $Video
@@ -174,29 +184,28 @@ else {
     $DefaultChoice = 1
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
     switch ($Result) {
-        "Yes" {
+        "0" {
             Remove-Item $Default
             if (!(Test-path $default)) {
                 Write-host "Reset complete,Exiting script.."
                 Break
             }
         }
-        "No" {
+        "1" {
             Continue
         }
     }
+    $Result
 
 }
+break
 #EndRegion RanOnce
 
 #Region Script
-#INtroduction to script
-Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
-Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
-
-
-#Gets Directory 
-$Directory = Get-Folder
+if ($null -eq $Directory) {
+    #Gets Directory 
+    $Directory = Get-Folder
+}
 
 #Removes Commas
 Write-host "Please wait while we verify video names will not ruin exclusion files."
@@ -205,6 +214,7 @@ foreach ($Video in $Videos) {
     if ($Video.Contains(",")) {
         $Vidz = $Video -Replace ',', ''
         $Path = Split-Path $Vidz
+        $VidBase = $Video.Basename
         if (!(Test-Path $Path)) {
             New-Item -Path $Path -ItemType Directory
         }
@@ -212,7 +222,8 @@ foreach ($Video in $Videos) {
             Move-item -path $Video -Destination $Vidz
         }
         else {
-            Write-Host " Found $Video"
+            Write-Host "Duplicate $Vidbase Found, Please move manually."
+            Write-Output "Duplicate file found | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
         }
     }
 }
