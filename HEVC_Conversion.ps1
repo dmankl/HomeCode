@@ -199,7 +199,6 @@ else {
     $Result
 
 }
-break
 #EndRegion RanOnce
 
 #Region Script
