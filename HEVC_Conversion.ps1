@@ -57,16 +57,15 @@ function Confirm-CompatibleHardwareEncoder {
             Return "CPU"
         }
     }
-    else {
-        return $false
-    }
 }
 #EndRegion Functions
 
 #Region Verification
 $Test = Confirm-CompatibleHardwareEncoder
-if (Confirm-CompatibleHardwareEncoder -eq $False) {
-    Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU, to convert to HEVC, Trying using CPU."
+switch (Confirm-CompatibleHardwareEncoder) {
+    "$Null" { 
+        Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU, to convert to HEVC, Trying using CPU." 
+    }
 }
 Write-Host "Verifying/Creating Supporting files."
 #EndRegion Verification
