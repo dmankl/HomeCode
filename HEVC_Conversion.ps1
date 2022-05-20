@@ -27,7 +27,7 @@ Function Get-Folder {
         Break
     }
     else {
-        Return     $FolderBrowser.SelectedPath 
+        Return $FolderBrowser.SelectedPath 
     }
 }
 #Function to write into Logs
@@ -57,19 +57,17 @@ function Confirm-CompatibleHardwareEncoder {
             Return "CPU"
         }
     }
-    else {
-        return $false
-    }
 }
 #EndRegion Functions
 
-<#Region Verification
-if (Confirm-CompatibleHardwareEncoder -eq $False) {
-    Read-Host "It seems you do not have a compatible CPU/GPU to convert to HEVC, Tryinng using CPU."
-    
+#Region Verification
+switch (Confirm-CompatibleHardwareEncoder) {
+    "$Null" { 
+        Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU, to convert to HEVC, Trying using CPU." 
+    }
 }
 Write-Host "Verifying/Creating Supporting files."
-#EndRegion Verification#>
+#EndRegion Verification
 
 #Region FFMPEG Files
 $FFMPEG = "C:\FFMPEG"
