@@ -27,7 +27,7 @@ Function Get-Folder {
         Break
     }
     else {
-        Return     $FolderBrowser.SelectedPath 
+        Return $FolderBrowser.SelectedPath 
     }
 }
 #Function to write into Logs
@@ -61,7 +61,6 @@ function Confirm-CompatibleHardwareEncoder {
 #EndRegion Functions
 
 #Region Verification
-$Test = Confirm-CompatibleHardwareEncoder
 switch (Confirm-CompatibleHardwareEncoder) {
     "$Null" { 
         Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU, to convert to HEVC, Trying using CPU." 
@@ -142,7 +141,6 @@ Clear-Host
 #Endregion Resource Files
 
 #Introduction
-Write-Host "Beta - $Test"
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-host "This script is to convert videos into the HEVC codec."
 #Provide SourceCode
