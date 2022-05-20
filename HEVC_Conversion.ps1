@@ -363,7 +363,8 @@ Foreach ($Video in $Videos) {
                     Remove-item $Output
                     Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
                     Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                    Continue 
+                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                    
+                    Continue 
                 }
                  
                 #Removes Original file if it is bigger than the converted file
