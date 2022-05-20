@@ -328,6 +328,7 @@ Foreach ($Video in $Videos) {
         #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
         switch ($ConversionGPU) {
             "AMD" {
+                Read-Host "AMD is currently under testing, It is likely to not do anything but if you do not want to test it please close this window. To contine press enter. "
                 if ($Vidtest -contains "codec_name=mov_text") {
                     & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
                 }
