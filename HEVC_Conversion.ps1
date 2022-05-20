@@ -1,9 +1,8 @@
 #Region Whole
 
 #Region Intro
-<#  Batch Convert to HEVC with FFMPEG using Nvidia graphics card or using your cpu
-    This Script uses FFMPEG, If you do not have it then it will download it and put it in the right location
-    The defaults For the conversion process are good but if you want better quality lower the number on line# 111 or 114
+<#  Batch Convert to HEVC with FFMPEG, If you do not have it then it will download it and put it in the right location
+    The defaults for the conversion process are good but if you want better quality lower the number on line# 318-339
     If your video card is not capable of decoding HEVC video files will appear in the error log saying "Small Converted Video For",
     and the video path\name and adds it to the exclusion list to prevent multiple attempts.
     Uses ffprobe that is downloaded with ffmpeg to check if a file is already HEVC and skips it then adds it to the exclusion list.
@@ -39,9 +38,10 @@ Function Show-Time($string) {
 function Confirm-CompatibleHardwareEncoder {
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
     $GPUs = Invoke-WebRequest -Uri $Url -UseBasicParsing | ConvertFrom-Csv
-    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.Name -like "NVIDIA*" -or $_.Name -like "AMD*" }
+    $graphicsCards = @(Get-CimInstance win32_VideoController) | Where-Object { $_.Name -like "NVIDIA*" -or $_.Name -like "AMD*" } 
+    $graphicsCard = $graphicsCards.Name -replace 'NVIDIA |AMD ', ''
     $supportedGPU = @()
-    ForEach ($Graphic in $graphicsCards) {
+    ForEach ($Graphic in $graphicsCard) {
         if ($GPUs.gpu -contains $Graphic) {
             $supportedGPU += $Graphic
         }
@@ -63,7 +63,7 @@ function Confirm-CompatibleHardwareEncoder {
 #Region Verification
 switch (Confirm-CompatibleHardwareEncoder) {
     "$Null" { 
-        Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU, to convert to HEVC, Trying using CPU." 
+        Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU to convert to HEVC, Trying using CPU." 
     }
 }
 Write-Host "Verifying/Creating Supporting files."
@@ -86,6 +86,8 @@ If (!( Test-Path -Path $Encoder )) {
     Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
     Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
     Remove-Item $Output
+    Get-ChildItem C:\temp\ -recurse | Where-Object { $_.PSIsContainer -eq $true -and $_.Name -like "ffmpeg*" } | Remove-Item -Recurse
+
 }
 else {
     Write-Host "Found The files, Lets get started."
@@ -131,6 +133,7 @@ If (!( Test-Path -Path $Default )) {
     $Defaults = [pscustomobject]@{
         'Path'    = ''
         'RanOnce' = ''
+        'Debug'   = ''
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
@@ -155,7 +158,6 @@ if ($LoadedDefaults.RanOnce -ne "Yes") {
     $Options = "&Yes", "&No"
     $DefaultChoice = 0
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-
     switch ($Result) {
         "0" {
             #Creates/Adds Converted Videos to Exclusion List
@@ -188,7 +190,6 @@ else {
     $Title = "Reset Defaults"
     $Message = "Do you need to reset your default settings, Press enter to continue?"
     $Options = "&Yes", "&No"
-
     $DefaultChoice = 1
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
     switch ($Result) {
@@ -438,7 +439,6 @@ if ($RFileList.Length -gt 2) {
     $Title = "Rename"
     $Message = "Would you like to rename the files that were unable to be renamed?"
     $Options = "&Yes", "&No"
-
     $DefaultChoice = 0
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
 
