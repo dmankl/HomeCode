@@ -65,6 +65,15 @@ switch (Confirm-CompatibleHardwareEncoder) {
     "$Null" { 
         Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU to convert to HEVC, Trying using CPU." 
     }
+    "NVIDIA"{
+        $ConversionGPU = "NVIDIA"
+    }
+    "AMD" {
+        $ConversionGPU = "AMD"
+    }
+    "CPU" {
+        $ConversionGPU = "CPU"
+    }
 }
 Write-Host "Verifying/Creating Supporting files."
 #EndRegion Verification
@@ -145,7 +154,7 @@ Clear-Host
 
 #Introduction
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
-Write-host "This script is to convert videos into the HEVC codec."
+Write-host "This script is to convert videos using the $Conversiongpu HEVC codec."
 #Provide SourceCode
 Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
 Write-Host "Warning! This script will modify files, exit now if you do not want this." -ForegroundColor DarkRed -BackgroundColor White
@@ -317,7 +326,7 @@ Foreach ($Video in $Videos) {
         Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
         #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
-        switch (Confirm-CompatibleHardwareEncoder) {
+        switch ($ConversionGPU) {
             "AMD" {
                 if ($Vidtest -contains "codec_name=mov_text") {
                     & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
