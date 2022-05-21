@@ -33,7 +33,7 @@ Function Get-Folder {
 Function Show-Time($string) {
     $dateTimeNow = Get-Date -Format "HH:mm-MM.dd.yy"
     $outStr = "" + $dateTimeNow + " " + $string 
-    Write-Output $outStr
+    Write-host $outStr -ForegroundColor Yellow
 }
 function Confirm-CompatibleHardwareEncoder {
     $Url = "https://raw.githubusercontent.com/dmankl/HomeCode/master/GPU.csv"
@@ -65,7 +65,7 @@ switch (Confirm-CompatibleHardwareEncoder) {
     "$Null" { 
         Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU to convert to HEVC, Trying using CPU." 
     }
-    "NVIDIA"{
+    "NVIDIA" {
         $ConversionGPU = "NVIDIA"
     }
     "AMD" {
@@ -284,8 +284,7 @@ Foreach ($Video in $Videos) {
     If ( Test-Path $Output ) {
         If ( Test-Path $Final ) {
             Remove-item $Output
-            Show-Time
-            Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
+            Show-Time; Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
             Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
         }
         Else {
@@ -322,8 +321,7 @@ Foreach ($Video in $Videos) {
         #Converts video If it is not already HEVC
         #Gets Current File Size
         $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
-        Show-Time
-        Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
+        Show-Time"Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
         #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
         switch ($ConversionGPU) {
@@ -364,8 +362,7 @@ Foreach ($Video in $Videos) {
                 #Gets converted Video Sizes for Comparison
                 $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
 
-                Show-Time
-                Write-Host "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
+                Show-Time "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
                     
                 #Removes output video file if it was converted incorrectly, adds to the exclusion list   
                 If ( $CSize -lt 10 ) {
@@ -430,8 +427,7 @@ Foreach ($Video in $Videos) {
             }
             "$False" {
                 #If a video file was not produced it will be added to exclusion list
-                Show-Time
-                Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
+                Show-Time ; Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
                 Write-output "Conversion Failed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
                 Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
             }
