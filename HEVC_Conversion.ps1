@@ -227,8 +227,7 @@ Write-host "Please wait while we verify video names will not ruin exclusion file
 $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | ForEach-Object { $_.FullName } | Sort-Object 
 foreach ($Video in $Videos) {
     if ($Video.Contains('[') -or $Video.Contains(']') -or $Video.Contains(',')) {
-        $Vidz = $Video
-        $Vidz.Replace('[', '').Replace(']', '').Replace(',', '')
+        $Vidz = $Video.Replace('[', '').Replace(']', '').Replace(',', '')
         $Path = Split-Path $Vidz
         $VidBase = $Video.Basename
         if (!(Test-Path $Path)) {
