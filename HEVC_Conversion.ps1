@@ -284,7 +284,7 @@ Foreach ($Video in $Videos) {
     If ( Test-Path $Output ) {
         If ( Test-Path $Final ) {
             Remove-item $Output
-            Show-Time; Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
+            Show-Time ; Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
             Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
         }
         Else {
@@ -321,7 +321,7 @@ Foreach ($Video in $Videos) {
         #Converts video If it is not already HEVC
         #Gets Current File Size
         $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
-        Show-Time"Processing $Vid, It is currently $OSize MBs. Please Wait."
+        Show-Time "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
         #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
         switch ($ConversionGPU) {
