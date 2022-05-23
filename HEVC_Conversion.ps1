@@ -352,7 +352,7 @@ Foreach ($Video in $Videos) {
     If (Test-Path $Output) {
         If (Test-Path $Final) {
             Remove-item $Output
-            Show-Time ; Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
+            Show-Time "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." 
             Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
         }
         Else {
@@ -482,7 +482,7 @@ $RFileList = Import-Csv -Path $Rename -Delimiter "|"
 #Gets files from the $Rename file and tries to rename them while removing themm from the CSV
 $RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList.Path } | ForEach-Object { $_.FullName } | Sort-Object
 $Count = $RVideos.count
-if ($Count -ge 0) { 
+if ($Count -gt 0) { 
     $Title = "Rename"
     $Message = "Would you like to rename the files that were unable to be renamed?"
     $Options = "&Yes", "&No"
