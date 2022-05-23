@@ -273,7 +273,7 @@ Switch ($LoadedDefaults.RanOnce) {
         }
     }
     "Yes" {
-        if ($null -ne $LoadedDefaults.Debug) {
+        if ($LoadedDefaults.Debug -eq "Yes") {
             Remove-Item $Default
             if (!(Test-path $default)) {
                 Write-host "Reset complete,Exiting script.."
