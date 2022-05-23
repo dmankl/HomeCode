@@ -352,7 +352,7 @@ Foreach ($Video in $Videos) {
     If (Test-Path $Output) {
         If (Test-Path $Final) {
             Remove-item $Output
-            Show-Time ; Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
+            Show-Time "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." 
             Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
         }
         Else {
@@ -404,9 +404,9 @@ Foreach ($Video in $Videos) {
                 Show-Time "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
                     
                 #Removes output video file if it was converted incorrectly, adds to the exclusion list  
-                switch ($Space) {
+
                     #Removes a failed conversion
-                 ($CSize -lt 10) {
+                 if ($CSize -lt 10) {
                         Remove-item $Output
                         Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
                         Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
@@ -414,7 +414,7 @@ Foreach ($Video in $Videos) {
                         Continue 
                     }
                     #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
-                 ($OSize -eq $CSize) {
+                 if ($OSize -eq $CSize) {
                         Remove-Item $Video
                         if (Test-Path $Video) {
                             Start-Sleep -Seconds 15
@@ -427,7 +427,7 @@ Foreach ($Video in $Videos) {
                         Continue 
                     }
                     #Removes Original file if it is bigger than the converted file
-                 ($Space -ge 5) {
+                if ($Space -ge 5) {
                         Remove-Item $Video
                         #Checks that the Original file was deleted, if not it tried to remove again
                         if (Test-Path $Video) {
@@ -449,7 +449,7 @@ Foreach ($Video in $Videos) {
                         }
                     }
                     #Removes Converted File if it is bigger than the original file
-                 ($Space -lt 5) {
+                if ($Space -lt 5) {
                         Remove-Item $Output
                         if (Test-Path $Output) {
                             Start-Sleep -Seconds 15
@@ -461,7 +461,7 @@ Foreach ($Video in $Videos) {
                     }  
     
                     
-                }
+                
             }
             "$False" {
                 #If a video file was not produced it will be added to exclusion list
@@ -482,7 +482,7 @@ $RFileList = Import-Csv -Path $Rename -Delimiter "|"
 #Gets files from the $Rename file and tries to rename them while removing themm from the CSV
 $RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList.Path } | ForEach-Object { $_.FullName } | Sort-Object
 $Count = $RVideos.count
-if ($Count -ge 0) { 
+if ($Count -gt 0) { 
     $Title = "Rename"
     $Message = "Would you like to rename the files that were unable to be renamed?"
     $Options = "&Yes", "&No"
