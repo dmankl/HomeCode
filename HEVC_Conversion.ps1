@@ -13,6 +13,8 @@
 #EndRegion Intro
 
 #Region Functions
+$OFFMPEG = "C:\FFMPEG"
+$FFMPEG = "$OFFMPEG\FFMPEG"
 #Function to display Folder selector and exit script if cancelled
 Function Get-Folder {
     Write-Host "Please select the folder you want to convert." -ForegroundColor Black -BackgroundColor White
@@ -58,64 +60,99 @@ function Confirm-CompatibleHardwareEncoder {
         }
     }
 }
-#EndRegion Functions
-
-#Region Verification
-switch (Confirm-CompatibleHardwareEncoder) {
-    "$Null" { 
-        Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU to convert to HEVC, Trying using CPU." 
-    }
-    "NVIDIA" {
-        $ConversionGPU = "NVIDIA"
-    }
-    "AMD" {
-        $ConversionGPU = "AMD"
-    }
-    "CPU" {
-        $ConversionGPU = "CPU"
-    }
-}
-Write-Host "Verifying/Creating Supporting files."
-#EndRegion Verification
-
-#Region FFMPEG Files
-$FFMPEG = "C:\FFMPEG"
-$Resources = "$FFMPEG\_Conversion"
-$Encoder = "$FFMPEG\bin\ffmpeg.exe"
-If (!( Test-Path -Path $Encoder )) {
+Function Update-FF {
+    Remove-Item "$FFMPEG\*" -Exclude "_Conversion" -Recurse -ErrorAction SilentlyContinue
+    Remove-Item "C:\Temp\ffmpeg*" -ErrorAction SilentlyContinue
     if (!(Test-Path "C:\Temp")) {
-        New-Item -Path "C:\" -Name "Temp" -ItemType "Directory"
+        New-Item -Path "C:\" -Name "Temp" -ItemType "Directory" | Out-Null
     }
-    if (!(Test-Path "$FFMPEG\bin")) {
-        New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory"
+    if (!(Test-Path "$OFFMPEG\FFMPEG")) {
+        New-Item -Path "$OFFMPEG" -Name "FFMPEG" -ItemType "Directory" | Out-Null
     }
     $Url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
     $Output = "C:\Temp\ffmpeg.zip"
     Invoke-WebRequest -Uri $Url -OutFile $Output
     Expand-Archive -LiteralPath $Output -DestinationPath "C:\Temp"
-    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse
+    Copy-Item "C:\Temp\ffmpeg*\*" -Destination "$FFMPEG" -Recurse -ErrorAction SilentlyContinue
     Remove-Item $Output
     Get-ChildItem C:\temp\ -recurse | Where-Object { $_.PSIsContainer -eq $true -and $_.Name -like "ffmpeg*" } | Remove-Item -Recurse
+}
+Function Update-Default {
 
+    $Defaults = [pscustomobject]@{
+        "Path"    = $LoadedDefaults.path
+        "RanOnce" = $LoadedDefaults.RanOnce
+        "Debug"   = $LoadedDefaults.debug
+        "Space"   = $LoadedDefaults.debug
+        "Version" = $LoadedDefaults.Version
+    }
+
+    Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation -Encoding utf8
+
+    Write-Host "$FileList"
+}
+Function Convert-Video {
+    switch ($ConversionGPU) {
+        "AMD" {
+            Read-Host "AMD is currently under testing, It is likely to not do anything but if you do not want to test it please close this window. To contine press enter. "
+            if ($Vidtest -contains "codec_name=mov_text") {
+                & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+            }
+            else {
+                & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+            }
+        }
+        "CPU" {
+            if ($Vidtest -contains "codec_name=mov_text") {                            
+                & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+            }
+            else {
+                & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
+            }
+        }
+        "NVIDIA" {
+            if ($Vidtest -contains "codec_name=mov_text") {
+                & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
+            }
+            else {
+                & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
+            }
+        }
+    }
+}
+#EndRegion Functions
+
+#Region Files
+$Resources = "$OFFMPEG\_Conversion"
+$Encoder = "$FFMPEG\bin\ffmpeg.exe"
+Write-Host "Verifying/Creating Supporting files."
+If (!(Test-Path -Path $Encoder)) {
+    if (Test-Path -path "$OFFMPEG\bin\ffmpeg.exe") {
+        Move-Item -path "$OFFMPEG\bin", "$OFFMPEG\doc", "$OFFMPEG\presets" -Destination "$FFMPEG"
+        if (!(test-path "$FFMPEG\bin")) {
+            New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory" | Out-Null
+        }
+        Get-ChildItem $FFMPEG -Recurse | Where-Object {$_.Extension -in ".exe"} | Move-Item $FFMPEG\bin
+    }
+    else {
+        Update-FF
+    }
 }
 else {
     Write-Host "Found The files, Lets get started."
 }
 $Env:Path += "$FFMPEG\bin\"
-#EndRegion FFMPEG Files
-
-#Region Resource Files
 $Probe = "$FFMPEG\bin\ffprobe.exe"
-If (!( Test-Path -Path $Resources )) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
+If (!(Test-Path -Path $Resources)) { New-Item -Path $FFMPEG -Name "_Conversion" -ItemType "Directory" }   
 $Log = "$Resources\ConversionLog.csv"
-If (!( Test-Path -Path $Log )) { 
+If (!(Test-Path -Path $Log)) { 
     $Logs = [pscustomobject]@{
         'Event' = ''
     }
     Export-Csv -InputObject $Logs -Path $Log -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $Xclude = "$Resources\Exclude.Csv"
-If (!( Test-Path -Path $Xclude )) { 
+If (!(Test-Path -Path $Xclude)) { 
     $Xclusions = [pscustomobject]@{
         'Path' = ''
         'File' = ''
@@ -123,9 +160,10 @@ If (!( Test-Path -Path $Xclude )) {
     Export-Csv -InputObject $Xclusions -Path $Xclude -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $Rename = "$Resources\Rename.csv"
-If (!( Test-Path -Path $Rename )) {     
+If (!(Test-Path -Path $Rename)) {     
     $Renames = [pscustomobject]@{
-        'Path' = 'Null'
+        'Path'    = ''
+        'NewName' = ''
     }
     Export-Csv -InputObject $Renames -Path $Rename -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
@@ -138,79 +176,109 @@ if (!(Test-Path $ErrorList)) {
     Export-Csv -InputObject $Errors -Path $ErrorList -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $Default = "$Resources\Defaults.csv"
-If (!( Test-Path -Path $Default )) { 
+If (!(Test-Path -Path $Default)) { 
     $Defaults = [pscustomobject]@{
         'Path'    = ''
         'RanOnce' = ''
         'Debug'   = ''
+        'Space'   = '0'
+        'Version' = "5.22.22"
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
 $LoadedDefaults = Import-Csv -Path $Default -Delimiter "|"
 $FileList = Import-Csv -Path $Xclude -Delimiter "|"
 $Errors = Import-Csv -Path $ErrorList -Delimiter "|"
+#Update-Default
+#Read-Host
 Clear-Host
-#Endregion Resource Files
+#Endregion Files
 
+#Region Verification & Introduction
 #Introduction
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
-Write-host "This script is to convert videos using the $Conversiongpu HEVC codec."
-#Provide SourceCode
 Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
-Write-Host "Warning! This script will modify files, exit now if you do not want this." -ForegroundColor DarkRed -BackgroundColor White
-Read-Host "Press Enter to start."
-
-#Region RanOnce
-if ($LoadedDefaults.RanOnce -ne "Yes") {
-    $Title = "Baseline"
-    $Message = "Would you like to exclude your already converted files?"
-    $Options = "&Yes", "&No"
-    $DefaultChoice = 0
-    $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-    switch ($Result) {
-        "0" {
-            #Creates/Adds Converted Videos to Exclusion List
-            #Gets Directory 
-            $Directory = Get-Folder
-            Write-Host "Please wait while the exclusion list is being created."
-            $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.File -notcontains $_.BaseName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
-            Foreach ($Video in $Videos) {
-                $Vidtest = & $Probe -v error -show_format -show_streams $Video
-                $Vid = (Get-Item "$Video").Basename
-                if ($Vidtest -contains "codec_name=hevc") {
-                    Write-Host "$Vid is already converted." -ForegroundColor Cyan
-                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
-     
-                }
-            } 
-            #Stores RanOnce into default CSV
-            $LoadedDefaults | ForEach-Object { $LoadedDefaults.RanOnce = "Yes" } 
-            $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
-        }
-        "1" {
-            #Stores RanOnce into default CSV
-            $LoadedDefaults | ForEach-Object { $LoadedDefaults.RanOnce = "Yes" } 
-            $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
-        }
-  
+$Develop = Read-Host "Press Enter to get started"
+Switch ($Develop) {
+    "N" {
+        $ConversionGPU = "NVIDIA"
+    }
+    "A" {
+        $ConversionGPU = "AMD"
+    }
+    "C" {
+        $ConversionGPU = "CPU"
+    }
+    "R" {
+        $Debug = "Y"
+    }
+    "UP" {
+        Update-FF
     }
 }
-else {
-    $Title = "Reset Defaults"
-    $Message = "Do you need to reset your default settings, Press enter to continue?"
-    $Options = "&Yes", "&No"
-    $DefaultChoice = 1
-    $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-    switch ($Result) {
-        "0" {
+if ($Null -eq $ConversionGPU) {
+    switch (Confirm-CompatibleHardwareEncoder) {
+        "$Null" { 
+            Read-Host "It seems you do not have a compatible CPU/GPU Or the Compatible GPU list does not have your GPU to convert to HEVC, Trying using CPU." 
+        }
+        "NVIDIA" {
+            $ConversionGPU = "NVIDIA"
+        }
+        "AMD" {
+            $ConversionGPU = "AMD"
+        }
+        "CPU" {
+            $ConversionGPU = "CPU"
+        }
+    }
+}
+#Provide SourceCode
+Write-host "This script is to convert videos using the $ConversionGPU HEVC codec."
+Write-Host "Warning! This script will modify files, exit now if you do not want this." -ForegroundColor DarkRed -BackgroundColor White
+Read-Host "Press Enter to start."
+#EndRegion Verification & Introduction
+
+#Region RanOnce
+Switch ($LoadedDefaults.RanOnce) {
+    "$Null" {
+        $Title = "Baseline"
+        $Message = "Would you like to exclude your already converted files?"
+        $Options = "&Yes", "&No"
+        $DefaultChoice = 0
+        $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
+        switch ($Result) {
+            "0" {
+                #Creates/Adds Converted Videos to Exclusion List
+                #Gets Directory 
+                $Directory = Get-Folder
+                Write-Host "Please wait while the exclusion list is being created."
+                $Videos = Get-ChildItem $Directory -Recurse -Exclude "*_MERGED*" | Where-Object { $FileList.File -notcontains $_.BaseName -and $_.extension -in ".mp4", ".mkv", ".avi", ".m4v", ".wmv" } | ForEach-Object { $_.FullName } | Sort-Object 
+                Foreach ($Video in $Videos) {
+                    $Vidtest = & $Probe -v error -show_format -show_streams $Video
+                    $Vid = (Get-Item "$Video").Basename
+                    if ($Vidtest -contains "codec_name=hevc") {
+                        Write-Host "$Vid is already converted." -ForegroundColor Cyan
+                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                    }
+                } 
+                #Stores RanOnce into default CSV
+                $LoadedDefaults | ForEach-Object { $LoadedDefaults.RanOnce = "Yes" } 
+                $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+            }
+            "1" {
+                #Stores RanOnce into default CSV
+                $LoadedDefaults | ForEach-Object { $LoadedDefaults.RanOnce = "Yes" } 
+                $LoadedDefaults | Export-Csv -Encoding utf8 -Path $Default -Delimiter "|" -NoTypeInformation
+            }
+        }
+    }
+    "Yes" {
+        if ($null -ne $LoadedDefaults.Debug) {
             Remove-Item $Default
             if (!(Test-path $default)) {
                 Write-host "Reset complete,Exiting script.."
                 Break
             }
-        }
-        "1" {
-            Continue
         }
     }
 }
@@ -281,8 +349,8 @@ Foreach ($Video in $Videos) {
 
     #Check If A Conversion Was Interrupted, Removes temp file if it was interrupted
     #If it was just not renamed it will rename it
-    If ( Test-Path $Output ) {
-        If ( Test-Path $Final ) {
+    If (Test-Path $Output) {
+        If (Test-Path $Final) {
             Remove-item $Output
             Show-Time ; Write-host "Previous $Vid Conversion failed. Removing The Traitor From Your Computer." -ForegroundColor Yellow 
             Write-output "Previous File Removed | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
@@ -294,7 +362,7 @@ Foreach ($Video in $Videos) {
             
     #Possible Duplicate check, Verifies there is another file, Checks if there was a converted file
     if ($Video -ne $Final) {            
-        If ( Test-Path $Final ) {
+        If (Test-Path $Final) {
             $FVidtest = & $Probe -v error -show_format -show_streams $Video 
             if ($FVidtest -contains "codec_name=hevc") {
                 #If converted file is already HEVC removes about to be converted file
@@ -320,109 +388,79 @@ Foreach ($Video in $Videos) {
     else {   
         #Converts video If it is not already HEVC
         #Gets Current File Size
-        $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
+        $OSize = [math]::Round((Get-Item $Video).Length / 1MB, 2)        
         Show-Time "Processing $Vid, It is currently $OSize MBs. Please Wait."
                 
-        #Converts video Depending on onfirm-CompatibleHardwareEncoder Function.
-        switch ($ConversionGPU) {
-            "AMD" {
-                Read-Host "AMD is currently under testing, It is likely to not do anything but if you do not want to test it please close this window. To contine press enter. "
-                if ($Vidtest -contains "codec_name=mov_text") {
-                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
-                }
-                else {
-                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_amf -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
-                }
-            }
-            "CPU" {
-                if ($Vidtest -contains "codec_name=mov_text") {                            
-                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
-                }
-                else {
-                    & $Encoder -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v libx265 -rc constqp -crf 27 -b:v 0k -c:a copy -c:s copy "$Output"                         
-                }
-            }
-            "NVIDIA" {
-                if ($Vidtest -contains "codec_name=mov_text") {
-                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s srt "$Output"
-                }
-                else {
-                    & $Encoder -hwaccel cuvid -i $Video -hide_banner -loglevel 8 -map 0:v -map 0:a -map 0:s? -c:v hevc_nvenc -rc constqp -qp 27 -b:v 0k -c:a copy -c:s copy "$Output"
-                }
-            }
+        #Converts video commands in function region.
+        Convert-Video
 
-        }
-   
-        #Region PostConversion Checks
-
+        #Region PostConversion Checks;/.
         #Verifies a file was created -if it isnt then something went wrong with the conversion
-        switch (Test-Path $Output ) {
-            "$True" {
-                                    
+        switch (Test-Path $Output) {
+            "$True" {           
                 #Gets converted Video Sizes for Comparison
-                $CSize = [math]::Round(( Get-Item $Output ).Length / 1MB, 2 )
-
+                $CSize = [math]::Round((Get-Item $Output).Length / 1MB, 2)
+                $Space = $OSize - $CSize
                 Show-Time "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
                     
-                #Removes output video file if it was converted incorrectly, adds to the exclusion list   
-                If ( $CSize -lt 10 ) {
-                    Remove-item $Output
-                    Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
-                    Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                   
-                    Continue 
-                }
-                 
-                #Removes Original file if it is bigger than the converted file
-                If ( $OSize -gt $CSize ) {
-                    Remove-Item $Video
-                    #Checks that the Original file was deleted, if not it tried to remove again
-                    if (Test-Path $Video) {
-                        Start-Sleep -Seconds 15
-                        Write-host "Waiting 15 Seconds."
-                        Remove-Item $Video
-                    }   
-                    #If the Original File was removed , it renames the temp file
-                    If (!( Test-Path $Video )) {
-                        Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
-                        Rename-Item $Output -NewName $Final
-                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                #Removes output video file if it was converted incorrectly, adds to the exclusion list  
+                switch ($Space) {
+                    #Removes a failed conversion
+                 ($CSize -lt 10) {
+                        Remove-item $Output
+                        Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
+                        Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                   
                         Continue 
                     }
-                    Else {
-                        Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
-                        Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                        Add-Content $Rename "$Output" -Encoding "utf8"
-                    }
-                    Continue 
-                }
-    
-                #Removes Converted File if it is bigger than the original file
-                If ( $OSize -lt $CSize ) {
-                    Remove-Item $Output
-                    if (Test-Path $Output) {
-                        Start-Sleep -Seconds 15
-                        Write-host "Waiting 15 Seconds."
-                        Remove-Item $Output
-                    }    
-                    Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
-                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                    Continue 
-                }  
-    
-                #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
-                If ( $OSize -eq $CSize ) {
-                    Remove-Item $Video
-                    if (Test-Path $Video) {
-                        Start-Sleep -Seconds 15
-                        Write-host "Waiting 15 Seconds."
+                    #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
+                 ($OSize -eq $CSize) {
                         Remove-Item $Video
-                        Rename-Item $Output -NewName $Final
+                        if (Test-Path $Video) {
+                            Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
+                            Remove-Item $Video
+                            Rename-Item $Output -NewName $Final
+                        }  
+                        Write-Host "Same Size. Removing Original."
+                        Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                        Continue 
+                    }
+                    #Removes Original file if it is bigger than the converted file
+                 ($Space -ge 5) {
+                        Remove-Item $Video
+                        #Checks that the Original file was deleted, if not it tried to remove again
+                        if (Test-Path $Video) {
+                            Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
+                            Remove-Item $Video
+                        }   
+                        #If the Original File was removed , it renames the temp file
+                        If (!(Test-Path $Video)) {
+                            Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
+                            Rename-Item $Output -NewName $Final
+                            Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                            Continue 
+                        }
+                        Else {
+                            Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
+                            Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                            Write-Output "$Output | $Final" | Out-File -encoding utf8 -FilePath $Rename -Append
+                        }
+                    }
+                    #Removes Converted File if it is bigger than the original file
+                 ($Space -lt 5) {
+                        Remove-Item $Output
+                        if (Test-Path $Output) {
+                            Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
+                            Remove-Item $Output
+                        }    
+                        Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
+                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
                     }  
-                    Write-Host "Same Size. Removing Original."
-                    Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                    Continue 
-
+    
+                    
                 }
             }
             "$False" {
@@ -432,52 +470,58 @@ Foreach ($Video in $Videos) {
                 Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
             }
         }
-  
-        #Endregion PostConversion Checks
     }
+    #Endregion PostConversion Checks
 }
 #EndRegion VideoBatch
 #EndRegion Script
 
 #Region RenameFile
 #Renames Files that were not able to be renamed 
-$RFileList = Get-Content -Path $Rename
-if ($RFileList.Length -gt 2) { 
+$RFileList = Import-Csv -Path $Rename -Delimiter "|"
+#Gets files from the $Rename file and tries to rename them while removing themm from the CSV
+$RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList.Path } | ForEach-Object { $_.FullName } | Sort-Object
+$Count = $RVideos.count
+if ($Count -ge 0) { 
     $Title = "Rename"
     $Message = "Would you like to rename the files that were unable to be renamed?"
     $Options = "&Yes", "&No"
     $DefaultChoice = 0
     $Result = $Host.UI.PromptForChoice($Title, $Message, $Options, $DefaultChoice)
-
     switch ($Result) {
         "0"	{
-            #Gets files from the $Rename file and tries to rename them while removing themm from the CSV
-            $RVideos = Get-ChildItem $Directory -Recurse  | Where-Object { $_ -in $RFileList -and $_.extension -in ".mkv" } | ForEach-Object { $_.FullName } | Sort-Object
-            $Count = $RVideos.count
             Show-Time "---Starting--Renaming--Process---"
             Write-Host "$Count Videos to be processed."
 
             #Renaming Processing
             Foreach ($RVideo in $RVideos) {
-                $RVid = (Get-Item "$RVideo").fullname -Replace '_MERGED', ''
-                If ( Test-Path $RVideo ) {
-                    If ( Test-Path $RVid ) {
-                        Remove-item $RVid
+                $RVid = $RVideo.NewName
+                Switch (Test-Path $RVideo) {
+                    "$True" {
+                        If (Test-Path $RVid) {
+                            Remove-item $RVid
+                        }
+                        Write-Host "Processing $RVid"                
+                        Get-Item $RVideo | Rename-Item -NewName $RVid 
+                        if (Test-Path $RVid) {
+                            $Rename | Where-Object { $_.event -ne $RVideo } | Export-Csv -encoding utf8 -Path $Rename -Delimiter "|"
+                            Write-host "Renamed $RVid"
+                        }
+                        else {
+                            Write-Host "Could not rename $RVid, Please check if there is another file named $RVid"
+                            Write-Output "Couldnt Rename File | $Rvideo" | Export-Csv -Encoding UTF8 -Path $ErrorList -Delimiter "|"
+                        }
                     }
-                    Write-Host "Processing $RVid"                
-                    Get-Item $RVideo | Rename-Item -NewName $RVid 
-                    if (Test-Path $RVid) {
+                    "$False" {
                         $Rename | Where-Object { $_.event -ne $RVideo } | Export-Csv -encoding utf8 -Path $Rename -Delimiter "|"
-                        Write-host "Renamed $RVid"
+                        Write-Host "Could Not Find $RVideo, Removed from Rename list."
                     }
-                }
-                else {
-                    $Rename | Where-Object { $_.event -ne $RVideo } | Export-Csv -encoding utf8 -Path $Rename -Delimiter "|"
-                    Write-Host "Could Not Find $RVideo, Removed from Rename list."
                 }
             }
         }
-        "1"	{ Continue }
+        "1"	{ 
+            Continue 
+        }
     }
 }
 #EndRegion RenameFile
@@ -486,6 +530,12 @@ if ($RFileList.Length -gt 2) {
 Write-Host "All Videos In $Directory Have Been Converted. Logs, Exclusions, And Error Lists Can Be Found In $Resources" -ForegroundColor Black -BackgroundColor White
 Stop-Transcript
 Read-Host -Prompt "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
+
+switch ($debug) {
+    "Y" {
+        Remove-Item -Path $Default
+    }
+}
 #EndRegion END
 
 #Region FUTURE
