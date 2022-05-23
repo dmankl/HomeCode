@@ -62,7 +62,7 @@ function Confirm-CompatibleHardwareEncoder {
 }
 Function Update-FF {
     Remove-Item "$FFMPEG\*" -Exclude "_Conversion" -Recurse -ErrorAction SilentlyContinue
-    Remove-Item "C:\Temp\ffmpeg*" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -path "C:\Temp\ffmpeg*" -Recurse -Force -ErrorAction SilentlyContinue -
     if (!(Test-Path "C:\Temp")) {
         New-Item -Path "C:\" -Name "Temp" -ItemType "Directory" | Out-Null
     }
