@@ -132,7 +132,7 @@ If (!(Test-Path -Path $Encoder)) {
         if (!(test-path "$FFMPEG\bin")) {
             New-Item -Path "$FFMPEG" -Name "bin" -ItemType "Directory" | Out-Null
         }
-        Get-ChildItem $FFMPEG -Recurse | Where-Object {$_.Extension -in ".exe"} | Move-Item $FFMPEG\bin
+        Get-ChildItem $FFMPEG -Recurse | Where-Object { $_.Extension -in ".exe" } | Move-Item $FFMPEG\bin
     }
     else {
         Update-FF
@@ -199,6 +199,7 @@ Clear-Host
 #Introduction
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
+Read-Host "Warning! This script will modify files, press enter to continue"
 $Develop = Read-Host "Press Enter to get started"
 Switch ($Develop) {
     "N" {
@@ -344,7 +345,7 @@ Foreach ($Video in $Videos) {
     [int]$pct = ($Videos.IndexOf($Video) / $Videos.count) * 100
     Write-progress -Activity "Processing $Vid" -percentcomplete $pct -status "$pct% Complete"
 
-    #DuplicateCheck
+    #Duplicate Check
     $FileList = Import-Csv -Path $Xclude -Delimiter "|"
     $Files = $FileList.File
     if ($Files -contains $Vid) {
@@ -393,10 +394,11 @@ Foreach ($Video in $Videos) {
     else {   
         #Converts video If it is not already HEVC
         #Gets Current File Size
+
         $OSize = [math]::Round((Get-Item $Video).Length / 1MB, 2)        
         #Show-Time
         Write-progress -Activity "Processing $Vid, Current size: $OSize MBs. Please Wait..." -percentcomplete $pct -status "$pct% Complete"
- 
+
         #Converts video commands in function region.
         Convert-Video
 
@@ -408,54 +410,57 @@ Foreach ($Video in $Videos) {
                 $CSize = [math]::Round((Get-Item $Output).Length / 1MB, 2)
                 $Space = $OSize - $CSize
                 Show-Time "$Vid Processed Size is $CSize MBs. Let's Find Out Which File To Remove."
-                    
-                #Removes output video file if it was converted incorrectly, adds to the exclusion list  
 
-                    #Removes a failed conversion
-                 if ($CSize -lt 10) {
-                        Remove-item $Output
-                        Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
-                        Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                   
-                        Continue 
-                    }
-                    #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
-                 if ($OSize -eq $CSize) {
+                #Removes a failed conversion
+                if ($CSize -lt 10) {
+                    Remove-item $Output
+                    Write-host "Something Went Wrong. Converted File Too Small. Removing The Traitor From Your Computer and placed on exclusion list." -ForegroundColor Red
+                    Write-output "Small Video Output | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append                   
+                    Continue 
+                }
+
+                #Removes Original file if the converted and original files are the same size, then tries again if it cant remove it
+                if ($OSize -eq $CSize) {
+                    Remove-Item $Video
+                    if (Test-Path $Video) {
+                        Start-Sleep -Seconds 15
+                        Write-host "Waiting 15 Seconds."
                         Remove-Item $Video
-                        if (Test-Path $Video) {
-                            Start-Sleep -Seconds 15
-                            Write-host "Waiting 15 Seconds."
-                            Remove-Item $Video
-                            Rename-Item $Output -NewName $Final
-                        }  
-                        Write-Host "Same Size. Removing Original."
-                        Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                        Continue 
-                    }
-                    #Removes Original file if it is bigger than the converted file
+                        Rename-Item $Output -NewName $Final
+                    }  
+                    Write-Host "Same Size. Removing Original."
+                    Write-output "$Vid | $Final" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                    Continue 
+                }
+                #Removes Original file if it is bigger than the converted file
                 if ($Space -ge 5) {
+                    Remove-Item $Video
+                    #Checks that the Original file was deleted, if not it tried to remove again
+                    if (Test-Path $Video) {
+                        Start-Sleep -Seconds 15
+                        Write-host "Waiting 15 Seconds."
                         Remove-Item $Video
-                        #Checks that the Original file was deleted, if not it tried to remove again
-                        if (Test-Path $Video) {
-                            Start-Sleep -Seconds 15
-                            Write-host "Waiting 15 Seconds."
-                            Remove-Item $Video
-                        }   
-                        #If the Original File was removed , it renames the temp file
-                        If (!(Test-Path $Video)) {
-                            Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
-                            Rename-Item $Output -NewName $Final
-                            Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                            Continue 
-                        }
-                        Else {
-                            Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
-                            Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
-                            Write-Output "$Output | $Final" | Out-File -encoding utf8 -FilePath $Rename -Append
-                        }
+                    }   
+                    #If the Original File was removed , it renames the temp file
+                    If (!(Test-Path $Video)) {
+                        Write-Host "Original File Removed. Keeping The Converted File." -ForegroundColor Green
+                        Rename-Item $Output -NewName $Final
+                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                        Continue 
                     }
-                    #Removes Converted File if it is bigger than the original file
+                    Else {
+                        Write-Host "Couldnt Remove Old $Vid File." -ForegroundColor Red
+                        Write-output "Couldnt Remove Video Possibly In Use | $Video" | Out-File -encoding utf8 -FilePath $ErrorList -Append
+                        Write-Output "$Output | $Final" | Out-File -encoding utf8 -FilePath $Rename -Append
+                    }
+                }
+                #Removes Converted File if it is bigger than the original file
                 if ($Space -lt 5) {
+                    Remove-Item $Output
+                    if (Test-Path $Output) {
+                        Start-Sleep -Seconds 15
+                        Write-host "Waiting 15 Seconds."
                         Remove-Item $Output
                         if (Test-Path $Output) {
                             Start-Sleep -Seconds 15
@@ -476,6 +481,7 @@ Foreach ($Video in $Videos) {
     }
     #Endregion PostConversion Checks
 }
+Write-Progress -Activity "Processing Video" -Status "Completed Converting"-Completed
 #EndRegion VideoBatch
 #EndRegion Script
 
