@@ -177,12 +177,13 @@ if (!(Test-Path $ErrorList)) {
 }
 $Default = "$Resources\Defaults.csv"
 If (!(Test-Path -Path $Default)) { 
+    #When this gets modified change th .xx. in version up one , change the .xx to the day
     $Defaults = [pscustomobject]@{
         'Path'    = ''
         'RanOnce' = ''
         'Debug'   = ''
         'Space'   = '0'
-        'Version' = "5.22.22"
+        'Version' = "22.1.5"
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
@@ -339,6 +340,10 @@ Foreach ($Video in $Videos) {
     $Output = "$RootDirectory\$($Vid)_MERGED.mkv"
     $Final = "$RootDirectory\$Vid.mkv"
 
+    #Progress bar
+    [int]$pct = ($Videos.IndexOf($Video) / $Videos.count) * 100
+    Write-progress -Activity "Processing $Vid" -percentcomplete $pct -status "$pct% Complete"
+
     #DuplicateCheck
     $FileList = Import-Csv -Path $Xclude -Delimiter "|"
     $Files = $FileList.File
@@ -389,8 +394,9 @@ Foreach ($Video in $Videos) {
         #Converts video If it is not already HEVC
         #Gets Current File Size
         $OSize = [math]::Round((Get-Item $Video).Length / 1MB, 2)        
-        Show-Time "Processing $Vid, It is currently $OSize MBs. Please Wait."
-                
+        #Show-Time
+        Write-progress -Activity "Processing $Vid, Current size: $OSize MBs. Please Wait..." -percentcomplete $pct -status "$pct% Complete"
+ 
         #Converts video commands in function region.
         Convert-Video
 
@@ -458,10 +464,7 @@ Foreach ($Video in $Videos) {
                         }    
                         Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
                         Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                    }  
-    
-                    
-                
+                    }   
             }
             "$False" {
                 #If a video file was not produced it will be added to exclusion list
