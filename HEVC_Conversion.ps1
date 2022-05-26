@@ -62,7 +62,7 @@ function Confirm-CompatibleHardwareEncoder {
 }
 Function Update-FF {
     Remove-Item "$FFMPEG\*" -Exclude "_Conversion" -Recurse -ErrorAction SilentlyContinue
-    Remove-Item "C:\Temp\ffmpeg*" -ErrorAction SilentlyContinue
+    Remove-Item -path "C:\Temp\ffmpeg*" -Recurse -Force -ErrorAction SilentlyContinue -
     if (!(Test-Path "C:\Temp")) {
         New-Item -Path "C:\" -Name "Temp" -ItemType "Directory" | Out-Null
     }
@@ -177,12 +177,13 @@ if (!(Test-Path $ErrorList)) {
 }
 $Default = "$Resources\Defaults.csv"
 If (!(Test-Path -Path $Default)) { 
+    #When this gets modified change th .xx. in version up one , change the .xx to the day
     $Defaults = [pscustomobject]@{
         'Path'    = ''
         'RanOnce' = ''
         'Debug'   = ''
         'Space'   = '0'
-        'Version' = "5.22.22"
+        'Version' = "22.1.5"
     }
     Export-Csv -InputObject $Defaults -Path $Default -Delimiter "|" -NoTypeInformation -Encoding utf8
 }
@@ -274,7 +275,7 @@ Switch ($LoadedDefaults.RanOnce) {
         }
     }
     "Yes" {
-        if ($null -ne $LoadedDefaults.Debug) {
+        if ($LoadedDefaults.Debug -eq "Yes") {
             Remove-Item $Default
             if (!(Test-path $default)) {
                 Write-host "Reset complete,Exiting script.."
@@ -394,11 +395,10 @@ Foreach ($Video in $Videos) {
         #Converts video If it is not already HEVC
         #Gets Current File Size
 
-        $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
-        Show-Time
-        #Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
+        $OSize = [math]::Round((Get-Item $Video).Length / 1MB, 2)        
+        #Show-Time
         Write-progress -Activity "Processing $Vid, Current size: $OSize MBs. Please Wait..." -percentcomplete $pct -status "$pct% Complete"
-                
+
         #Converts video commands in function region.
         Convert-Video
 
@@ -462,10 +462,14 @@ Foreach ($Video in $Videos) {
                         Start-Sleep -Seconds 15
                         Write-host "Waiting 15 Seconds."
                         Remove-Item $Output
-                    }    
-                    Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
-                    Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
-                }               
+                        if (Test-Path $Output) {
+                            Start-Sleep -Seconds 15
+                            Write-host "Waiting 15 Seconds."
+                            Remove-Item $Output
+                        }    
+                        Write-Host "Converted File Removed. Keeping The Original File." -ForegroundColor Yellow
+                        Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
+                    }   
             }
             "$False" {
                 #If a video file was not produced it will be added to exclusion list
