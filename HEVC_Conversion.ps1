@@ -198,6 +198,7 @@ Clear-Host
 #Introduction
 Write-Host "HEVC Conversion by DMANKL." -ForegroundColor Green
 Write-host "Current source code can be found at https://raw.githubusercontent.com/dmankl/HomeCode/master/HEVC_Conversion.ps1"
+Read-Host "Warning! This script will modify files, press enter to continue"
 $Develop = Read-Host "Press Enter to get started"
 Switch ($Develop) {
     "N" {
@@ -339,7 +340,11 @@ Foreach ($Video in $Videos) {
     $Output = "$RootDirectory\$($Vid)_MERGED.mkv"
     $Final = "$RootDirectory\$Vid.mkv"
 
-    #DuplicateCheck
+    #Progress bar
+    [int]$pct = ($Videos.IndexOf($Video) / $Videos.count) * 100
+    Write-progress -Activity "Processing $Vid" -percentcomplete $pct -status "$pct% Complete"
+
+    #Duplicate Check
     $FileList = Import-Csv -Path $Xclude -Delimiter "|"
     $Files = $FileList.File
     if ($Files -contains $Vid) {
@@ -388,8 +393,13 @@ Foreach ($Video in $Videos) {
     else {   
         #Converts video If it is not already HEVC
         #Gets Current File Size
-        $OSize = [math]::Round((Get-Item $Video).Length / 1MB, 2)        
-        Show-Time "Processing $Vid, It is currently $OSize MBs. Please Wait."
+
+        $OSize = [math]::Round(( Get-Item $Video ).Length / 1MB, 2 )        
+        Show-Time
+        #Write-Host "Processing $Vid, It is currently $OSize MBs. Please Wait."
+        Write-progress -Activity "Processing $Vid, Current size: $OSize MBs. Please Wait..." -percentcomplete $pct -status "$pct% Complete"
+
+
                 
         #Converts video commands in function region.
         Convert-Video
@@ -473,6 +483,7 @@ Foreach ($Video in $Videos) {
     }
     #Endregion PostConversion Checks
 }
+Write-Progress -Activity "Processing Video" -Status "Completed Converting"-Completed
 #EndRegion VideoBatch
 #EndRegion Script
 
