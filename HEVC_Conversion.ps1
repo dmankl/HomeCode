@@ -471,6 +471,7 @@ Foreach ($Video in $Videos) {
                         Write-Output "$Video | $Vid" | Out-File -encoding utf8 -FilePath $Xclude -Append
                     }   
             }
+        }
             "$False" {
                 #If a video file was not produced it will be added to exclusion list
                 Show-Time ; Write-Host "Conversion Failed. Adding $Vid To The Error and Exclusion List." -ForegroundColor Red 
